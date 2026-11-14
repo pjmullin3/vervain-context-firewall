@@ -1,0 +1,70 @@
+{
+  "name": "@vervain/judge-replay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Judge-facing causal inference replay and cryptographic receipt inspector for Vervain scoped KV firewall.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "default": "./src/core.ts"
+    },
+    "./tokens.css": "./src/styles/tokens.css",
+    "./styles.css": "./src/styles/replay.css"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "scripts": {
+    "dev": "vite --port 4179",
+    "preview": "vite preview --port 4179",
+    "build": "node ./scripts/build.mjs",
+    "build:demo": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint --max-warnings 0 \"src/**/*.{ts,tsx}\" \"demo/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "scan:security": "node ./scripts/security-scan.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run test:e2e && npm run build && npm run build:demo && npm run scan:security"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/parser": "^8.72.2",
+    "@vitejs/plugin-react": "^6.3.0",
+    "eslint": "^10.15.0",
+    "jsdom": "^31.0.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.8"
+  }
+}

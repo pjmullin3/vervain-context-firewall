@@ -1,0 +1,479 @@
+{
+  "schema_version": "vervain.judge_replay.v1",
+  "run_id": "run_pending_h200_slot_01",
+  "fixture_id": "fx_awaiting_h200_01",
+  "scenario_id": "alder_birch_missing_retrieval_predicate",
+  "source_status": "incomplete",
+  "freshness": "current",
+  "stale_reason": null,
+  "unsupported_reason": null,
+  "gpu_run_recorded": false,
+  "gpu_status_label": "NO GPU RUN RECORDED",
+  "captured_at_utc": "2026-11-14T11:52:00Z",
+  "trust_boundary": {
+    "authority_source": "Server-owned gateway scope header (proxy-stamped)",
+    "mediated_boundary": "vLLM pre-attention paged KV block table read",
+    "iam_request_actor": "scope:birch",
+    "iam_access_decision": "allowed",
+    "retrieval_defect": "Staged missing retrieval predicate scenario awaiting H200 execution window",
+    "unmediated_surfaces": [
+      "H200 runtime artifact pending (NO GPU RUN RECORDED)",
+      "Non-mediated attention backends",
+      "Provider-internal hosted API memory"
+    ]
+  },
+  "software": {
+    "vllm_sha": "unrecorded",
+    "patch_digest_sha256": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+    "model_id": "Qwen/Qwen2.5-32B-Instruct",
+    "model_revision": "9f3b8c21d4e0",
+    "tokenizer_revision": "9f3b8c21d4e0",
+    "runtime_selected_backend": "FlashAttention-2 (pending H200 selection)",
+    "execution_surface": "local_contract_harness"
+  },
+  "hardware": {
+    "status": "no_gpu_run_recorded",
+    "gpu_model": null,
+    "gpu_count": null,
+    "topology": null,
+    "note": "NO GPU RUN RECORDED. Hard compute hold active; H200 execution has not occurred."
+  },
+  "policy": {
+    "request_id": "req_birch_pending_01",
+    "request_scope": "scope:birch",
+    "foreign_scope": "scope:alder",
+    "policy_epoch": 7,
+    "expected_allocation_generation": 18
+  },
+  "lineage": [
+    {
+      "id": "lin_birch_allowed",
+      "label": "Birch authorized context",
+      "scope_tag": "scope:birch",
+      "role": "request_owner",
+      "source_alias": "doc_birch_q3",
+      "token_span_label": "tokens[0..15] · scope:birch",
+      "block_alias": "kv_blk_042",
+      "allocation_generation": 18,
+      "pattern_kind": "ruled_horizontal"
+    },
+    {
+      "id": "lin_alder_foreign",
+      "label": "Alder staged retrieval record",
+      "scope_tag": "scope:alder",
+      "role": "foreign_injected",
+      "source_alias": "doc_alder_ops",
+      "token_span_label": "tokens[16..31] · scope:alder",
+      "block_alias": "kv_blk_041",
+      "allocation_generation": 18,
+      "pattern_kind": "hatched_diagonal"
+    }
+  ],
+  "lanes": {
+    "native_only": {
+      "lane_id": "native_only",
+      "label": "Native only",
+      "lane_note": "Baseline run staged; GPU execution not yet recorded.",
+      "run_config": {
+        "scenario_id": "alder_birch_missing_retrieval_predicate",
+        "seed": 20261114,
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "model_revision": "9f3b8c21d4e0",
+        "tokenizer_revision": "9f3b8c21d4e0",
+        "backend": "FlashAttention-2 (pending H200 selection)",
+        "vllm_sha": "unrecorded",
+        "fixture_id": "fx_awaiting_h200_01"
+      },
+      "summary": {
+        "scope_decision": "withheld_incomplete",
+        "scope_decision_label": "Incomplete: awaiting GPU execution",
+        "foreign_block_alias": "kv_blk_041",
+        "foreign_block_owner": "scope:alder",
+        "allowed_block_alias": "kv_blk_042",
+        "allowed_block_owner": "scope:birch",
+        "allocation_generation": 18,
+        "generation_verified": null,
+        "foreign_backend_dispatched": null,
+        "allowed_request_completed": null,
+        "evidence_status_label": "INCOMPLETE · NO GPU RUN RECORDED"
+      },
+      "blocks": [
+        {
+          "block_alias": "kv_blk_042",
+          "owner_scope": "scope:birch",
+          "allocation_generation": 18,
+          "expected_generation": 18,
+          "token_range": "tokens[0..15]",
+          "is_foreign_to_request": false,
+          "aperture_outcome": "pending"
+        },
+        {
+          "block_alias": "kv_blk_041",
+          "owner_scope": "scope:alder",
+          "allocation_generation": 18,
+          "expected_generation": 18,
+          "token_range": "tokens[16..31]",
+          "is_foreign_to_request": true,
+          "aperture_outcome": "pending"
+        }
+      ],
+      "steps": [
+        {
+          "step_index": 1,
+          "step_id": "request-authenticated",
+          "title": "request authenticated",
+          "recorded": true,
+          "boundary": "iam_gateway",
+          "disposition": "admitted",
+          "detail": "Staged Birch request authenticated locally under scope:birch.",
+          "artifact_ref": "evt_inc_native_01"
+        },
+        {
+          "step_index": 2,
+          "step_id": "retrieval-defect-injected",
+          "title": "retrieval defect injected",
+          "recorded": true,
+          "boundary": "retrieval_path",
+          "disposition": "defect_injected",
+          "detail": "Staged missing predicate fixture prepared with doc_alder_ops.",
+          "artifact_ref": "evt_inc_native_02"
+        },
+        {
+          "step_index": 3,
+          "step_id": "context-admitted-or-withheld",
+          "title": "context admitted or withheld",
+          "recorded": true,
+          "boundary": "context_admission",
+          "disposition": "admitted",
+          "detail": "Candidate context manifest serialized; awaiting vLLM engine run.",
+          "artifact_ref": "evt_inc_native_03"
+        },
+        {
+          "step_index": 4,
+          "step_id": "kv-block-allocated",
+          "title": "KV block allocated",
+          "recorded": false,
+          "boundary": "paged_kv_allocator",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: paged KV allocation not yet executed on H200.",
+          "artifact_ref": "evt_inc_native_04_pending"
+        },
+        {
+          "step_index": 5,
+          "step_id": "block-table-finalized",
+          "title": "block table finalized",
+          "recorded": false,
+          "boundary": "block_table",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: block table finalization pending.",
+          "artifact_ref": "evt_inc_native_05_pending"
+        },
+        {
+          "step_index": 6,
+          "step_id": "scope-checked",
+          "title": "scope checked",
+          "recorded": false,
+          "boundary": "attention_aperture",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: aperture check pending.",
+          "artifact_ref": "evt_inc_native_06_pending"
+        },
+        {
+          "step_index": 7,
+          "step_id": "backend-dispatched-or-stopped",
+          "title": "backend dispatched or stopped",
+          "recorded": false,
+          "boundary": "attention_backend",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: backend dispatch trace pending.",
+          "artifact_ref": "evt_inc_native_07_pending"
+        },
+        {
+          "step_index": 8,
+          "step_id": "allowed-result-completed",
+          "title": "allowed result completed",
+          "recorded": false,
+          "boundary": "egress_completion",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: allowed request completion pending.",
+          "artifact_ref": "evt_inc_native_08_pending"
+        },
+        {
+          "step_index": 9,
+          "step_id": "receipt-sealed",
+          "title": "receipt sealed",
+          "recorded": false,
+          "boundary": "audit_ledger",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: receipt cannot be sealed before engine execution.",
+          "artifact_ref": "evt_inc_native_09_pending"
+        }
+      ],
+      "correctness": {
+        "foreign_reads_stopped": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "injected foreign block reads stopped",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "allowed_requests_completed": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "allowed Birch requests completed",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      },
+      "telemetry": {
+        "ttft_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "itl_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "throughput_tok_per_s": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "tok/s",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "peak_gpu_memory_gib": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "GiB",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "guard_overhead_us": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "us",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      }
+    },
+    "native_plus_vervain": {
+      "lane_id": "native_plus_vervain",
+      "label": "Native plus Vervain",
+      "lane_note": "Vervain lane staged; GPU execution not yet recorded.",
+      "run_config": {
+        "scenario_id": "alder_birch_missing_retrieval_predicate",
+        "seed": 20261114,
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "model_revision": "9f3b8c21d4e0",
+        "tokenizer_revision": "9f3b8c21d4e0",
+        "backend": "FlashAttention-2 (pending H200 selection)",
+        "vllm_sha": "unrecorded",
+        "fixture_id": "fx_awaiting_h200_01"
+      },
+      "summary": {
+        "scope_decision": "withheld_incomplete",
+        "scope_decision_label": "Incomplete: awaiting GPU execution",
+        "foreign_block_alias": "kv_blk_041",
+        "foreign_block_owner": "scope:alder",
+        "allowed_block_alias": "kv_blk_042",
+        "allowed_block_owner": "scope:birch",
+        "allocation_generation": 18,
+        "generation_verified": null,
+        "foreign_backend_dispatched": null,
+        "allowed_request_completed": null,
+        "evidence_status_label": "INCOMPLETE · NO GPU RUN RECORDED"
+      },
+      "blocks": [
+        {
+          "block_alias": "kv_blk_042",
+          "owner_scope": "scope:birch",
+          "allocation_generation": 18,
+          "expected_generation": 18,
+          "token_range": "tokens[0..15]",
+          "is_foreign_to_request": false,
+          "aperture_outcome": "pending"
+        },
+        {
+          "block_alias": "kv_blk_041",
+          "owner_scope": "scope:alder",
+          "allocation_generation": 18,
+          "expected_generation": 18,
+          "token_range": "tokens[16..31]",
+          "is_foreign_to_request": true,
+          "aperture_outcome": "pending"
+        }
+      ],
+      "steps": [
+        {
+          "step_index": 1,
+          "step_id": "request-authenticated",
+          "title": "request authenticated",
+          "recorded": true,
+          "boundary": "iam_gateway",
+          "disposition": "admitted",
+          "detail": "Staged Birch request bound to server-owned scope:birch (epoch 7).",
+          "artifact_ref": "evt_inc_vervain_01"
+        },
+        {
+          "step_index": 2,
+          "step_id": "retrieval-defect-injected",
+          "title": "retrieval defect injected",
+          "recorded": true,
+          "boundary": "retrieval_path",
+          "disposition": "defect_injected",
+          "detail": "Staged missing predicate fixture prepared with doc_alder_ops (scope:alder).",
+          "artifact_ref": "evt_inc_vervain_02"
+        },
+        {
+          "step_index": 3,
+          "step_id": "context-admitted-or-withheld",
+          "title": "context admitted or withheld",
+          "recorded": true,
+          "boundary": "context_admission",
+          "disposition": "admitted",
+          "detail": "Lineage manifest prepared; awaiting H200 run after compute hold.",
+          "artifact_ref": "evt_inc_vervain_03"
+        },
+        {
+          "step_index": 4,
+          "step_id": "kv-block-allocated",
+          "title": "KV block allocated",
+          "recorded": false,
+          "boundary": "paged_kv_allocator",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: paged KV allocation not yet executed on H200.",
+          "artifact_ref": "evt_inc_vervain_04_pending"
+        },
+        {
+          "step_index": 5,
+          "step_id": "block-table-finalized",
+          "title": "block table finalized",
+          "recorded": false,
+          "boundary": "block_table",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: block table finalization pending.",
+          "artifact_ref": "evt_inc_vervain_05_pending"
+        },
+        {
+          "step_index": 6,
+          "step_id": "scope-checked",
+          "title": "scope checked",
+          "recorded": false,
+          "boundary": "attention_aperture",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: pre-attention scope check pending.",
+          "artifact_ref": "evt_inc_vervain_06_pending"
+        },
+        {
+          "step_index": 7,
+          "step_id": "backend-dispatched-or-stopped",
+          "title": "backend dispatched or stopped",
+          "recorded": false,
+          "boundary": "attention_backend",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: backend dispatch decision pending.",
+          "artifact_ref": "evt_inc_vervain_07_pending"
+        },
+        {
+          "step_index": 8,
+          "step_id": "allowed-result-completed",
+          "title": "allowed result completed",
+          "recorded": false,
+          "boundary": "egress_completion",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: allowed completion verification pending.",
+          "artifact_ref": "evt_inc_vervain_08_pending"
+        },
+        {
+          "step_index": 9,
+          "step_id": "receipt-sealed",
+          "title": "receipt sealed",
+          "recorded": false,
+          "boundary": "audit_ledger",
+          "disposition": "unrecorded",
+          "detail": "NO GPU RUN RECORDED: receipt remains unsealed until H200 execution completes.",
+          "artifact_ref": "evt_inc_vervain_09_pending"
+        }
+      ],
+      "correctness": {
+        "foreign_reads_stopped": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "injected foreign block reads stopped",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "allowed_requests_completed": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "allowed Birch requests completed",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      },
+      "telemetry": {
+        "ttft_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "itl_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "throughput_tok_per_s": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "tok/s",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "peak_gpu_memory_gib": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "GiB",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "guard_overhead_us": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "us",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      }
+    }
+  },
+  "exclusions": [
+    "NO GPU RUN RECORDED: H200 compute hold in effect; steps 4 through 9 are unrecorded.",
+    "Positive outcome claims are withheld until a verified run completes.",
+    "Other attention backends and provider-internal memory are not mediated."
+  ],
+  "verifier": {
+    "verifier_id": "vervain-receipt-verifier-v1",
+    "verdict": "unverified",
+    "canonical_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "computed_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "verified_at_utc": "2026-11-14T11:52:01Z",
+    "failure_reason": "Run is incomplete; final receipt has not been sealed."
+  }
+}

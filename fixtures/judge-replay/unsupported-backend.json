@@ -1,0 +1,479 @@
+{
+  "schema_version": "vervain.judge_replay.v1",
+  "run_id": "run_unsupported_surface_01",
+  "fixture_id": "fx_unsupported_backend_01",
+  "scenario_id": "alder_birch_missing_retrieval_predicate",
+  "source_status": "unsupported",
+  "freshness": "current",
+  "stale_reason": null,
+  "unsupported_reason": "Target backend uses opaque provider-internal memory with no paged KV block table hook. NO GPU RUN RECORDED.",
+  "gpu_run_recorded": false,
+  "gpu_status_label": "NO GPU RUN RECORDED",
+  "captured_at_utc": "2026-11-14T11:53:00Z",
+  "trust_boundary": {
+    "authority_source": "Server-owned gateway scope header (proxy-stamped)",
+    "mediated_boundary": "Gateway ingress only; internal model KV memory is opaque on this backend",
+    "iam_request_actor": "scope:birch",
+    "iam_access_decision": "allowed",
+    "retrieval_defect": "Missing retrieval predicate detected at ingress log, but internal KV memory is unmediated",
+    "unmediated_surfaces": [
+      "Opaque provider-internal KV cache",
+      "Uninstrumented attention backend",
+      "GPU hardware execution (NO GPU RUN RECORDED)"
+    ]
+  },
+  "software": {
+    "vllm_sha": "4d71a92c8b10",
+    "patch_digest_sha256": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+    "model_id": "Qwen/Qwen2.5-32B-Instruct",
+    "model_revision": "9f3b8c21d4e0",
+    "tokenizer_revision": "9f3b8c21d4e0",
+    "runtime_selected_backend": "UninstrumentedExternalBackend",
+    "execution_surface": "unmediated_surface"
+  },
+  "hardware": {
+    "status": "no_gpu_run_recorded",
+    "gpu_model": null,
+    "gpu_count": null,
+    "topology": null,
+    "note": "NO GPU RUN RECORDED. Backend surface is unsupported for pre-attention KV mediation."
+  },
+  "policy": {
+    "request_id": "req_birch_unsup_01",
+    "request_scope": "scope:birch",
+    "foreign_scope": "scope:alder",
+    "policy_epoch": 7,
+    "expected_allocation_generation": 18
+  },
+  "lineage": [
+    {
+      "id": "lin_birch_allowed",
+      "label": "Birch authorized context",
+      "scope_tag": "scope:birch",
+      "role": "request_owner",
+      "source_alias": "doc_birch_q3",
+      "token_span_label": "tokens[0..15] · scope:birch",
+      "block_alias": "kv_unmediated_01",
+      "allocation_generation": 0,
+      "pattern_kind": "ruled_horizontal"
+    },
+    {
+      "id": "lin_alder_foreign",
+      "label": "Alder injected retrieval record",
+      "scope_tag": "scope:alder",
+      "role": "foreign_injected",
+      "source_alias": "doc_alder_ops",
+      "token_span_label": "tokens[16..31] · scope:alder",
+      "block_alias": "kv_unmediated_02",
+      "allocation_generation": 0,
+      "pattern_kind": "hatched_diagonal"
+    }
+  ],
+  "lanes": {
+    "native_only": {
+      "lane_id": "native_only",
+      "label": "Native only",
+      "lane_note": "Unsupported backend surface; KV block ownership hooks unavailable.",
+      "run_config": {
+        "scenario_id": "alder_birch_missing_retrieval_predicate",
+        "seed": 20261114,
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "model_revision": "9f3b8c21d4e0",
+        "tokenizer_revision": "9f3b8c21d4e0",
+        "backend": "UninstrumentedExternalBackend",
+        "vllm_sha": "4d71a92c8b10",
+        "fixture_id": "fx_unsupported_backend_01"
+      },
+      "summary": {
+        "scope_decision": "unsupported_backend",
+        "scope_decision_label": "Unsupported backend (not mediated)",
+        "foreign_block_alias": "kv_unmediated_02",
+        "foreign_block_owner": "scope:alder",
+        "allowed_block_alias": "kv_unmediated_01",
+        "allowed_block_owner": "scope:birch",
+        "allocation_generation": 0,
+        "generation_verified": null,
+        "foreign_backend_dispatched": null,
+        "allowed_request_completed": null,
+        "evidence_status_label": "UNSUPPORTED · NO GPU RUN RECORDED"
+      },
+      "blocks": [
+        {
+          "block_alias": "kv_unmediated_01",
+          "owner_scope": "scope:birch",
+          "allocation_generation": 0,
+          "expected_generation": 0,
+          "token_range": "tokens[0..15]",
+          "is_foreign_to_request": false,
+          "aperture_outcome": "unsupported"
+        },
+        {
+          "block_alias": "kv_unmediated_02",
+          "owner_scope": "scope:alder",
+          "allocation_generation": 0,
+          "expected_generation": 0,
+          "token_range": "tokens[16..31]",
+          "is_foreign_to_request": true,
+          "aperture_outcome": "unsupported"
+        }
+      ],
+      "steps": [
+        {
+          "step_index": 1,
+          "step_id": "request-authenticated",
+          "title": "request authenticated",
+          "recorded": true,
+          "boundary": "iam_gateway",
+          "disposition": "admitted",
+          "detail": "Request authenticated at gateway under scope:birch.",
+          "artifact_ref": "evt_unsup_n_01"
+        },
+        {
+          "step_index": 2,
+          "step_id": "retrieval-defect-injected",
+          "title": "retrieval defect injected",
+          "recorded": true,
+          "boundary": "retrieval_path",
+          "disposition": "defect_injected",
+          "detail": "Missing predicate placed doc_alder_ops on context path.",
+          "artifact_ref": "evt_unsup_n_02"
+        },
+        {
+          "step_index": 3,
+          "step_id": "context-admitted-or-withheld",
+          "title": "context admitted or withheld",
+          "recorded": true,
+          "boundary": "context_admission",
+          "disposition": "unsupported",
+          "detail": "Target backend is not in the mediated vLLM backend set.",
+          "artifact_ref": "evt_unsup_n_03"
+        },
+        {
+          "step_index": 4,
+          "step_id": "kv-block-allocated",
+          "title": "KV block allocated",
+          "recorded": false,
+          "boundary": "paged_kv_allocator",
+          "disposition": "unsupported",
+          "detail": "Excluded: provider-internal / uninstrumented KV state. NO GPU RUN RECORDED.",
+          "artifact_ref": "evt_unsup_n_04"
+        },
+        {
+          "step_index": 5,
+          "step_id": "block-table-finalized",
+          "title": "block table finalized",
+          "recorded": false,
+          "boundary": "block_table",
+          "disposition": "unsupported",
+          "detail": "Excluded: block table is not exposed on this backend.",
+          "artifact_ref": "evt_unsup_n_05"
+        },
+        {
+          "step_index": 6,
+          "step_id": "scope-checked",
+          "title": "scope checked",
+          "recorded": false,
+          "boundary": "attention_aperture",
+          "disposition": "unsupported",
+          "detail": "Pre-attention scope guard cannot run on uninstrumented backend.",
+          "artifact_ref": "evt_unsup_n_06"
+        },
+        {
+          "step_index": 7,
+          "step_id": "backend-dispatched-or-stopped",
+          "title": "backend dispatched or stopped",
+          "recorded": false,
+          "boundary": "attention_backend",
+          "disposition": "unsupported",
+          "detail": "Backend dispatch mediation unavailable.",
+          "artifact_ref": "evt_unsup_n_07"
+        },
+        {
+          "step_index": 8,
+          "step_id": "allowed-result-completed",
+          "title": "allowed result completed",
+          "recorded": false,
+          "boundary": "egress_completion",
+          "disposition": "unsupported",
+          "detail": "Outcome withheld for unsupported backend.",
+          "artifact_ref": "evt_unsup_n_08"
+        },
+        {
+          "step_index": 9,
+          "step_id": "receipt-sealed",
+          "title": "receipt sealed",
+          "recorded": false,
+          "boundary": "audit_ledger",
+          "disposition": "unsupported",
+          "detail": "Excluded: unsupported backend; KV receipt cannot be sealed. NO GPU RUN RECORDED.",
+          "artifact_ref": "evt_unsup_n_09"
+        }
+      ],
+      "correctness": {
+        "foreign_reads_stopped": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "injected foreign block reads stopped",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "allowed_requests_completed": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "allowed Birch requests completed",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      },
+      "telemetry": {
+        "ttft_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "itl_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "throughput_tok_per_s": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "tok/s",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "peak_gpu_memory_gib": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "GiB",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "guard_overhead_us": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "us",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      }
+    },
+    "native_plus_vervain": {
+      "lane_id": "native_plus_vervain",
+      "label": "Native plus Vervain",
+      "lane_note": "Vervain refuses to claim KV mediation when selected backend is unsupported; records explicit exclusion.",
+      "run_config": {
+        "scenario_id": "alder_birch_missing_retrieval_predicate",
+        "seed": 20261114,
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "model_revision": "9f3b8c21d4e0",
+        "tokenizer_revision": "9f3b8c21d4e0",
+        "backend": "UninstrumentedExternalBackend",
+        "vllm_sha": "4d71a92c8b10",
+        "fixture_id": "fx_unsupported_backend_01"
+      },
+      "summary": {
+        "scope_decision": "unsupported_backend",
+        "scope_decision_label": "Unsupported backend (explicitly excluded)",
+        "foreign_block_alias": "kv_unmediated_02",
+        "foreign_block_owner": "scope:alder",
+        "allowed_block_alias": "kv_unmediated_01",
+        "allowed_block_owner": "scope:birch",
+        "allocation_generation": 0,
+        "generation_verified": null,
+        "foreign_backend_dispatched": null,
+        "allowed_request_completed": null,
+        "evidence_status_label": "UNSUPPORTED · NO GPU RUN RECORDED"
+      },
+      "blocks": [
+        {
+          "block_alias": "kv_unmediated_01",
+          "owner_scope": "scope:birch",
+          "allocation_generation": 0,
+          "expected_generation": 0,
+          "token_range": "tokens[0..15]",
+          "is_foreign_to_request": false,
+          "aperture_outcome": "unsupported"
+        },
+        {
+          "block_alias": "kv_unmediated_02",
+          "owner_scope": "scope:alder",
+          "allocation_generation": 0,
+          "expected_generation": 0,
+          "token_range": "tokens[16..31]",
+          "is_foreign_to_request": true,
+          "aperture_outcome": "unsupported"
+        }
+      ],
+      "steps": [
+        {
+          "step_index": 1,
+          "step_id": "request-authenticated",
+          "title": "request authenticated",
+          "recorded": true,
+          "boundary": "iam_gateway",
+          "disposition": "admitted",
+          "detail": "Request authenticated at gateway under scope:birch.",
+          "artifact_ref": "evt_unsup_v_01"
+        },
+        {
+          "step_index": 2,
+          "step_id": "retrieval-defect-injected",
+          "title": "retrieval defect injected",
+          "recorded": true,
+          "boundary": "retrieval_path",
+          "disposition": "defect_injected",
+          "detail": "Missing predicate placed doc_alder_ops on context path.",
+          "artifact_ref": "evt_unsup_v_02"
+        },
+        {
+          "step_index": 3,
+          "step_id": "context-admitted-or-withheld",
+          "title": "context admitted or withheld",
+          "recorded": true,
+          "boundary": "context_admission",
+          "disposition": "unsupported",
+          "detail": "Runtime backend UninstrumentedExternalBackend lacks KV aperture instrumentation; never treated as a favorable outcome.",
+          "artifact_ref": "evt_unsup_v_03"
+        },
+        {
+          "step_index": 4,
+          "step_id": "kv-block-allocated",
+          "title": "KV block allocated",
+          "recorded": false,
+          "boundary": "paged_kv_allocator",
+          "disposition": "unsupported",
+          "detail": "Excluded: provider-internal / uninstrumented KV state. NO GPU RUN RECORDED.",
+          "artifact_ref": "evt_unsup_v_04"
+        },
+        {
+          "step_index": 5,
+          "step_id": "block-table-finalized",
+          "title": "block table finalized",
+          "recorded": false,
+          "boundary": "block_table",
+          "disposition": "unsupported",
+          "detail": "Excluded: block table is not exposed on this backend.",
+          "artifact_ref": "evt_unsup_v_05"
+        },
+        {
+          "step_index": 6,
+          "step_id": "scope-checked",
+          "title": "scope checked",
+          "recorded": false,
+          "boundary": "attention_aperture",
+          "disposition": "unsupported",
+          "detail": "Missing policy/aperture hook is reported as UNSUPPORTED, never success.",
+          "artifact_ref": "evt_unsup_v_06"
+        },
+        {
+          "step_index": 7,
+          "step_id": "backend-dispatched-or-stopped",
+          "title": "backend dispatched or stopped",
+          "recorded": false,
+          "boundary": "attention_backend",
+          "disposition": "unsupported",
+          "detail": "Backend dispatch mediation unavailable.",
+          "artifact_ref": "evt_unsup_v_07"
+        },
+        {
+          "step_index": 8,
+          "step_id": "allowed-result-completed",
+          "title": "allowed result completed",
+          "recorded": false,
+          "boundary": "egress_completion",
+          "disposition": "unsupported",
+          "detail": "Outcome claim withheld for unsupported surface.",
+          "artifact_ref": "evt_unsup_v_08"
+        },
+        {
+          "step_index": 9,
+          "step_id": "receipt-sealed",
+          "title": "receipt sealed",
+          "recorded": false,
+          "boundary": "audit_ledger",
+          "disposition": "unsupported",
+          "detail": "Excluded: provider-internal state and uninstrumented backend. NO GPU RUN RECORDED.",
+          "artifact_ref": "evt_unsup_v_09"
+        }
+      ],
+      "correctness": {
+        "foreign_reads_stopped": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "injected foreign block reads stopped",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "allowed_requests_completed": {
+          "status": "not_recorded",
+          "numerator": null,
+          "denominator": null,
+          "unit_label": "allowed Birch requests completed",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      },
+      "telemetry": {
+        "ttft_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "itl_ms": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "ms",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "throughput_tok_per_s": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "tok/s",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "peak_gpu_memory_gib": {
+          "status": "not_recorded",
+          "value": null,
+          "sample_count": null,
+          "unit": "GiB",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        },
+        "guard_overhead_us": {
+          "status": "not_recorded",
+          "p50": null,
+          "p95": null,
+          "sample_count": null,
+          "unit": "us",
+          "unrecorded_reason": "NO GPU RUN RECORDED"
+        }
+      }
+    }
+  },
+  "exclusions": [
+    "Excluded: provider-internal state and uninstrumented attention backend.",
+    "NO GPU RUN RECORDED: no H200 artifact exists for this fixture.",
+    "A missing mediation path is never reported as a favorable outcome."
+  ],
+  "verifier": {
+    "verifier_id": "vervain-receipt-verifier-v1",
+    "verdict": "unverified",
+    "canonical_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "computed_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "verified_at_utc": "2026-11-14T11:53:02Z",
+    "failure_reason": "Surface unsupported for KV mediation."
+  }
+}

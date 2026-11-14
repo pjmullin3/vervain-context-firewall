@@ -1,0 +1,194 @@
+{
+  "schema_version": "vervain.judge_replay.v1",
+  "run_id": "run_stale_epoch_06",
+  "fixture_id": "fx_stale_epoch_01",
+  "scenario_id": "alder_birch_missing_retrieval_predicate",
+  "source_status": "local_only",
+  "freshness": "stale",
+  "stale_reason": "Artifact captured under superseded policy_epoch 6 (active epoch is 7). Outcome claim withheld for stale bundle. NO GPU RUN RECORDED.",
+  "unsupported_reason": null,
+  "gpu_run_recorded": false,
+  "gpu_status_label": "NO GPU RUN RECORDED",
+  "captured_at_utc": "2026-11-14T10:15:00Z",
+  "trust_boundary": {
+    "authority_source": "Server-owned gateway scope header (proxy-stamped)",
+    "mediated_boundary": "vLLM pre-attention paged KV block table read",
+    "iam_request_actor": "scope:birch",
+    "iam_access_decision": "allowed",
+    "retrieval_defect": "Prior epoch controlled fault injection trace",
+    "unmediated_surfaces": [
+      "Superseded policy epoch 6",
+      "Non-mediated attention backends",
+      "GPU hardware execution (NO GPU RUN RECORDED)"
+    ]
+  },
+  "software": {
+    "vllm_sha": "4d71a92c8b10",
+    "patch_digest_sha256": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+    "model_id": "Qwen/Qwen2.5-32B-Instruct",
+    "model_revision": "9f3b8c21d4e0",
+    "tokenizer_revision": "9f3b8c21d4e0",
+    "runtime_selected_backend": "FlashAttention-2 (local contract harness)",
+    "execution_surface": "local_contract_harness"
+  },
+  "hardware": {
+    "status": "no_gpu_run_recorded",
+    "gpu_model": null,
+    "gpu_count": null,
+    "topology": null,
+    "note": "NO GPU RUN RECORDED. Archived stale-epoch local contract trace."
+  },
+  "policy": {
+    "request_id": "req_birch_epoch6_04",
+    "request_scope": "scope:birch",
+    "foreign_scope": "scope:alder",
+    "policy_epoch": 6,
+    "expected_allocation_generation": 15
+  },
+  "lineage": [
+    {
+      "id": "lin_birch_allowed",
+      "label": "Birch authorized context",
+      "scope_tag": "scope:birch",
+      "role": "request_owner",
+      "source_alias": "doc_birch_q3",
+      "token_span_label": "tokens[0..15] · scope:birch",
+      "block_alias": "kv_blk_019",
+      "allocation_generation": 15,
+      "pattern_kind": "ruled_horizontal"
+    },
+    {
+      "id": "lin_alder_foreign",
+      "label": "Alder injected retrieval record",
+      "scope_tag": "scope:alder",
+      "role": "foreign_injected",
+      "source_alias": "doc_alder_ops",
+      "token_span_label": "tokens[16..31] · scope:alder",
+      "block_alias": "kv_blk_018",
+      "allocation_generation": 15,
+      "pattern_kind": "hatched_diagonal"
+    }
+  ],
+  "lanes": {
+    "native_only": {
+      "lane_id": "native_only",
+      "label": "Native only",
+      "lane_note": "Archived epoch 6 baseline local trace.",
+      "run_config": {
+        "scenario_id": "alder_birch_missing_retrieval_predicate",
+        "seed": 20261114,
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "model_revision": "9f3b8c21d4e0",
+        "tokenizer_revision": "9f3b8c21d4e0",
+        "backend": "FlashAttention-2 (local contract harness)",
+        "vllm_sha": "4d71a92c8b10",
+        "fixture_id": "fx_stale_epoch_01"
+      },
+      "summary": {
+        "scope_decision": "not_mediated_in_baseline",
+        "scope_decision_label": "Stale epoch 6 baseline trace",
+        "foreign_block_alias": "kv_blk_018",
+        "foreign_block_owner": "scope:alder",
+        "allowed_block_alias": "kv_blk_019",
+        "allowed_block_owner": "scope:birch",
+        "allocation_generation": 15,
+        "generation_verified": false,
+        "foreign_backend_dispatched": true,
+        "allowed_request_completed": true,
+        "evidence_status_label": "STALE · LOCAL TEST · NO GPU RUN RECORDED"
+      },
+      "blocks": [
+        { "block_alias": "kv_blk_019", "owner_scope": "scope:birch", "allocation_generation": 15, "expected_generation": 15, "token_range": "tokens[0..15]", "is_foreign_to_request": false, "aperture_outcome": "passed_unmediated" },
+        { "block_alias": "kv_blk_018", "owner_scope": "scope:alder", "allocation_generation": 15, "expected_generation": 15, "token_range": "tokens[16..31]", "is_foreign_to_request": true, "aperture_outcome": "passed_unmediated" }
+      ],
+      "steps": [
+        { "step_index": 1, "step_id": "request-authenticated", "title": "request authenticated", "recorded": true, "boundary": "iam_gateway", "disposition": "admitted", "detail": "Epoch 6 Birch request authenticated.", "artifact_ref": "evt_st_n_01" },
+        { "step_index": 2, "step_id": "retrieval-defect-injected", "title": "retrieval defect injected", "recorded": true, "boundary": "retrieval_path", "disposition": "defect_injected", "detail": "Epoch 6 retrieval fault injected.", "artifact_ref": "evt_st_n_02" },
+        { "step_index": 3, "step_id": "context-admitted-or-withheld", "title": "context admitted or withheld", "recorded": true, "boundary": "context_admission", "disposition": "admitted", "detail": "Epoch 6 context admitted.", "artifact_ref": "evt_st_n_03" },
+        { "step_index": 4, "step_id": "kv-block-allocated", "title": "KV block allocated", "recorded": true, "boundary": "paged_kv_allocator", "disposition": "allocated", "detail": "Epoch 6 KV blocks allocated (gen 15).", "artifact_ref": "evt_st_n_04" },
+        { "step_index": 5, "step_id": "block-table-finalized", "title": "block table finalized", "recorded": true, "boundary": "block_table", "disposition": "finalized", "detail": "Epoch 6 block table finalized.", "artifact_ref": "evt_st_n_05" },
+        { "step_index": 6, "step_id": "scope-checked", "title": "scope checked", "recorded": true, "boundary": "attention_aperture", "disposition": "unmediated_pass", "detail": "Epoch 6 baseline unmediated.", "artifact_ref": "evt_st_n_06" },
+        { "step_index": 7, "step_id": "backend-dispatched-or-stopped", "title": "backend dispatched or stopped", "recorded": true, "boundary": "attention_backend", "disposition": "backend_dispatched", "detail": "Epoch 6 baseline dispatched.", "artifact_ref": "evt_st_n_07" },
+        { "step_index": 8, "step_id": "allowed-result-completed", "title": "allowed result completed", "recorded": true, "boundary": "egress_completion", "disposition": "completed", "detail": "Epoch 6 control completed.", "artifact_ref": "evt_st_n_08" },
+        { "step_index": 9, "step_id": "receipt-sealed", "title": "receipt sealed", "recorded": true, "boundary": "audit_ledger", "disposition": "sealed", "detail": "Epoch 6 receipt sealed (now stale). NO GPU RUN RECORDED.", "artifact_ref": "evt_st_n_09" }
+      ],
+      "correctness": {
+        "foreign_reads_stopped": { "status": "recorded", "numerator": 0, "denominator": 1, "unit_label": "injected foreign block reads stopped (epoch 6)", "unrecorded_reason": null },
+        "allowed_requests_completed": { "status": "recorded", "numerator": 1, "denominator": 1, "unit_label": "allowed Birch requests completed (epoch 6)", "unrecorded_reason": null }
+      },
+      "telemetry": {
+        "ttft_ms": { "status": "not_recorded", "p50": null, "p95": null, "sample_count": null, "unit": "ms", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "itl_ms": { "status": "not_recorded", "p50": null, "p95": null, "sample_count": null, "unit": "ms", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "throughput_tok_per_s": { "status": "not_recorded", "value": null, "sample_count": null, "unit": "tok/s", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "peak_gpu_memory_gib": { "status": "not_recorded", "value": null, "sample_count": null, "unit": "GiB", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "guard_overhead_us": { "status": "not_recorded", "p50": null, "p95": null, "sample_count": null, "unit": "us", "unrecorded_reason": "NO GPU RUN RECORDED" }
+      }
+    },
+    "native_plus_vervain": {
+      "lane_id": "native_plus_vervain",
+      "label": "Native plus Vervain",
+      "lane_note": "Archived epoch 6 Vervain trace; marked stale after epoch rotation.",
+      "run_config": {
+        "scenario_id": "alder_birch_missing_retrieval_predicate",
+        "seed": 20261114,
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "model_revision": "9f3b8c21d4e0",
+        "tokenizer_revision": "9f3b8c21d4e0",
+        "backend": "FlashAttention-2 (local contract harness)",
+        "vllm_sha": "4d71a92c8b10",
+        "fixture_id": "fx_stale_epoch_01"
+      },
+      "summary": {
+        "scope_decision": "foreign_stopped_allowed_admitted",
+        "scope_decision_label": "Stopped in epoch 6 (artifact now stale)",
+        "foreign_block_alias": "kv_blk_018",
+        "foreign_block_owner": "scope:alder",
+        "allowed_block_alias": "kv_blk_019",
+        "allowed_block_owner": "scope:birch",
+        "allocation_generation": 15,
+        "generation_verified": true,
+        "foreign_backend_dispatched": false,
+        "allowed_request_completed": true,
+        "evidence_status_label": "STALE · LOCAL TEST · NO GPU RUN RECORDED"
+      },
+      "blocks": [
+        { "block_alias": "kv_blk_019", "owner_scope": "scope:birch", "allocation_generation": 15, "expected_generation": 15, "token_range": "tokens[0..15]", "is_foreign_to_request": false, "aperture_outcome": "passed_verified" },
+        { "block_alias": "kv_blk_018", "owner_scope": "scope:alder", "allocation_generation": 15, "expected_generation": 15, "token_range": "tokens[16..31]", "is_foreign_to_request": true, "aperture_outcome": "clipped_before_dispatch" }
+      ],
+      "steps": [
+        { "step_index": 1, "step_id": "request-authenticated", "title": "request authenticated", "recorded": true, "boundary": "iam_gateway", "disposition": "admitted", "detail": "Epoch 6 Birch request bound to scope:birch.", "artifact_ref": "evt_st_v_01" },
+        { "step_index": 2, "step_id": "retrieval-defect-injected", "title": "retrieval defect injected", "recorded": true, "boundary": "retrieval_path", "disposition": "defect_injected", "detail": "Epoch 6 retrieval fault injected.", "artifact_ref": "evt_st_v_02" },
+        { "step_index": 3, "step_id": "context-admitted-or-withheld", "title": "context admitted or withheld", "recorded": true, "boundary": "context_admission", "disposition": "admitted", "detail": "Epoch 6 context admitted.", "artifact_ref": "evt_st_v_03" },
+        { "step_index": 4, "step_id": "kv-block-allocated", "title": "KV block allocated", "recorded": true, "boundary": "paged_kv_allocator", "disposition": "allocated", "detail": "Epoch 6 KV blocks allocated (gen 15).", "artifact_ref": "evt_st_v_04" },
+        { "step_index": 5, "step_id": "block-table-finalized", "title": "block table finalized", "recorded": true, "boundary": "block_table", "disposition": "finalized", "detail": "Epoch 6 block table finalized.", "artifact_ref": "evt_st_v_05" },
+        { "step_index": 6, "step_id": "scope-checked", "title": "scope checked", "recorded": true, "boundary": "attention_aperture", "disposition": "mismatch_detected", "detail": "Epoch 6 mismatch detected on kv_blk_018.", "artifact_ref": "evt_st_v_06" },
+        { "step_index": 7, "step_id": "backend-dispatched-or-stopped", "title": "backend dispatched or stopped", "recorded": true, "boundary": "attention_backend", "disposition": "stopped_before_dispatch", "detail": "Epoch 6 foreign block stopped before dispatch.", "artifact_ref": "evt_st_v_07" },
+        { "step_index": 8, "step_id": "allowed-result-completed", "title": "allowed result completed", "recorded": true, "boundary": "egress_completion", "disposition": "completed", "detail": "Epoch 6 allowed Birch request completed.", "artifact_ref": "evt_st_v_08" },
+        { "step_index": 9, "step_id": "receipt-sealed", "title": "receipt sealed", "recorded": true, "boundary": "audit_ledger", "disposition": "sealed", "detail": "Epoch 6 receipt sealed; superseded by epoch 7. NO GPU RUN RECORDED.", "artifact_ref": "evt_st_v_09" }
+      ],
+      "correctness": {
+        "foreign_reads_stopped": { "status": "recorded", "numerator": 1, "denominator": 1, "unit_label": "injected foreign block reads stopped (epoch 6)", "unrecorded_reason": null },
+        "allowed_requests_completed": { "status": "recorded", "numerator": 1, "denominator": 1, "unit_label": "allowed Birch requests completed (epoch 6)", "unrecorded_reason": null }
+      },
+      "telemetry": {
+        "ttft_ms": { "status": "not_recorded", "p50": null, "p95": null, "sample_count": null, "unit": "ms", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "itl_ms": { "status": "not_recorded", "p50": null, "p95": null, "sample_count": null, "unit": "ms", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "throughput_tok_per_s": { "status": "not_recorded", "value": null, "sample_count": null, "unit": "tok/s", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "peak_gpu_memory_gib": { "status": "not_recorded", "value": null, "sample_count": null, "unit": "GiB", "unrecorded_reason": "NO GPU RUN RECORDED" },
+        "guard_overhead_us": { "status": "not_recorded", "p50": null, "p95": null, "sample_count": null, "unit": "us", "unrecorded_reason": "NO GPU RUN RECORDED" }
+      }
+    }
+  },
+  "exclusions": [
+    "STALE ARTIFACT: captured under policy_epoch 6 prior to rotation to policy_epoch 7.",
+    "NO GPU RUN RECORDED: local contract harness trace only."
+  ],
+  "verifier": {
+    "verifier_id": "vervain-receipt-verifier-v1",
+    "verdict": "verified",
+    "canonical_sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "computed_sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "verified_at_utc": "2026-11-14T10:15:02Z",
+    "failure_reason": null
+  }
+}
