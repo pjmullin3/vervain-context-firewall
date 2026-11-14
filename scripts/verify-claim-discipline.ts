@@ -79,6 +79,7 @@ const ROOT_DOC_TARGETS: readonly string[] = [
   'ONE_PAGER_IDEA.txt',
   'VIDEO_SCRIPT_2_MIN.md',
   'VIDEO_SCRIPT_1_MIN.md',
+  'CARBON1_HANDOFF.md',
 ];
 
 function toPosixRelative(absPath: string): string {

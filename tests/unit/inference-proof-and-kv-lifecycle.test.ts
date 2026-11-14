@@ -42,9 +42,15 @@ import {
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, '..', '..');
+const IN_REPO_FIXTURES_DIR = path.join(REPO_ROOT, 'verification', 'fixtures');
+const IN_REPO_PYTHON_SRC = path.join(REPO_ROOT, 'packages', 'evidence-verifier', 'src');
 const SIBLING_CARBON3_ROOT = path.resolve(REPO_ROOT, '..', 'vervain-carbon-evidence-lane');
-const SIBLING_FIXTURES_DIR = path.join(SIBLING_CARBON3_ROOT, 'verification', 'fixtures');
-const SIBLING_PYTHON_SRC = path.join(SIBLING_CARBON3_ROOT, 'packages', 'evidence-verifier', 'src');
+const SIBLING_FIXTURES_DIR = fs.existsSync(IN_REPO_FIXTURES_DIR)
+  ? IN_REPO_FIXTURES_DIR
+  : path.join(SIBLING_CARBON3_ROOT, 'verification', 'fixtures');
+const SIBLING_PYTHON_SRC = fs.existsSync(IN_REPO_PYTHON_SRC)
+  ? IN_REPO_PYTHON_SRC
+  : path.join(SIBLING_CARBON3_ROOT, 'packages', 'evidence-verifier', 'src');
 
 const H_A = 'a'.repeat(64);
 const H_B = 'b'.repeat(64);

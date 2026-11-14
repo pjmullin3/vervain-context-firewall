@@ -17,6 +17,15 @@ dist
 
 # Automated test suites, browser artifacts, and coverage outputs
 tests
+verification
+packages/judge-replay/node_modules
+packages/judge-replay/tests
+packages/judge-replay/demo
+packages/judge-replay/dist
+packages/judge-replay/dist-demo
+packages/evidence-verifier/tests
+__pycache__
+.pytest_cache
 playwright-report
 test-results
 coverage

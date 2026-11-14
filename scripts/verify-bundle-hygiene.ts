@@ -236,7 +236,11 @@ function main(): void {
     sourceFilesScanned += 1;
     const isClientOrShared =
       relPath.startsWith('src/client/') || relPath.startsWith('src/shared/');
-    const isTestFile = relPath.startsWith('tests/');
+    const isTestFile =
+      relPath.startsWith('tests/') ||
+      relPath.startsWith('verification/') ||
+      relPath.startsWith('packages/evidence-verifier/') ||
+      relPath.startsWith('packages/judge-replay/tests/');
     const isRuntimeCode = runtimeSet.has(absFile);
     const baseName = path.basename(relPath);
 

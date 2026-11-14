@@ -8,6 +8,15 @@
  */
 
 import { useState } from 'react';
+import {
+  VervainInferenceReplay,
+  createSafeFixtureRegistry,
+} from '../../../packages/judge-replay/src/index.js';
+import awaitingH200FixtureJson from '../../../fixtures/judge-replay/awaiting-h200-incomplete.json';
+import localPairedFixtureJson from '../../../fixtures/judge-replay/local-paired-replay.json';
+import staleEpochFixtureJson from '../../../fixtures/judge-replay/stale-policy-epoch.json';
+import unsupportedBackendFixtureJson from '../../../fixtures/judge-replay/unsupported-backend.json';
+import verifierFailedFixtureJson from '../../../fixtures/judge-replay/verifier-failed-digest.json';
 import { SCOPED_ATTENTION_LIMITATION_LABEL } from '../../shared/config.js';
 import type {
   InferenceProofBadgeState,
@@ -16,6 +25,22 @@ import type {
   OnlineTileStepEvidence,
   ScopedAttentionProofView,
 } from '../../shared/contracts.js';
+
+const JUDGE_REPLAY_REGISTRY = createSafeFixtureRegistry({
+  'local-paired': localPairedFixtureJson,
+  'awaiting-h200': awaitingH200FixtureJson,
+  'unsupported-backend': unsupportedBackendFixtureJson,
+  'verifier-failed': verifierFailedFixtureJson,
+  'stale-epoch': staleEpochFixtureJson,
+});
+
+const JUDGE_REPLAY_PRESETS: ReadonlyArray<{ readonly alias: string; readonly label: string }> = [
+  { alias: 'local-paired', label: 'Local 9-Step Paired Harness' },
+  { alias: 'awaiting-h200', label: 'Awaiting H200 (Incomplete)' },
+  { alias: 'unsupported-backend', label: 'Unsupported Backend' },
+  { alias: 'verifier-failed', label: 'Verifier Digest Failure' },
+  { alias: 'stale-epoch', label: 'Stale Policy Epoch' },
+];
 
 export interface ScopedAttentionLabProps {
   readonly isOpen: boolean;
@@ -60,6 +85,8 @@ export function ScopedAttentionLab({
   inferenceProof,
 }: ScopedAttentionLabProps) {
   const [showMathJson, setShowMathJson] = useState(false);
+  const [showVllmReplay, setShowVllmReplay] = useState(false);
+  const [replayFixtureAlias, setReplayFixtureAlias] = useState<string>('local-paired');
   const [selectedKvModeId, setSelectedKvModeId] = useState<KvLifecycleModeId>(
     'contaminated_block_table',
   );
@@ -578,18 +605,86 @@ export function ScopedAttentionLab({
                 Fail-closed checks: {proof.allMaskedControlStatus} ·{' '}
                 {proof.invalidBlockControlStatus}
               </span>
-              <button
-                type="button"
-                className="btn btn--subtle"
-                data-testid="btn-toggle-scoped-json"
-                aria-expanded={showMathJson}
-                onClick={() => setShowMathJson((prev) => !prev)}
-              >
-                {showMathJson
-                  ? 'Hide equation & JSON evidence'
-                  : 'Inspect equation & JSON evidence'}
-              </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn--subtle"
+                  data-testid="btn-toggle-vllm-replay"
+                  aria-expanded={showVllmReplay}
+                  onClick={() => setShowVllmReplay((prev) => !prev)}
+                >
+                  {showVllmReplay
+                    ? 'Hide 9-step vLLM causal replay'
+                    : 'Open 9-step vLLM causal replay (@vervain/judge-replay)'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--subtle"
+                  data-testid="btn-toggle-scoped-json"
+                  aria-expanded={showMathJson}
+                  onClick={() => setShowMathJson((prev) => !prev)}
+                >
+                  {showMathJson
+                    ? 'Hide equation & JSON evidence'
+                    : 'Inspect equation & JSON evidence'}
+                </button>
+              </div>
             </div>
+
+            {showVllmReplay && (
+              <div
+                className="coverage-section"
+                style={{ marginTop: 14, paddingTop: 14 }}
+                data-testid="vllm-judge-replay-panel"
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    marginBottom: 10,
+                  }}
+                >
+                  <div>
+                    <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: 13 }}>
+                      Self-Hosted vLLM 9-Step Paged-KV Attention Aperture Replay
+                    </h4>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      Pre-GPU local contract fixtures via @vervain/judge-replay (Arrow keys scrub
+                      steps 1..9; all fixtures labeled NO GPU RUN RECORDED)
+                    </span>
+                  </div>
+                  <div
+                    className="tab-group"
+                    role="group"
+                    aria-label="vLLM replay pre-GPU fixture selector"
+                    style={{ flexWrap: 'wrap' }}
+                  >
+                    {JUDGE_REPLAY_PRESETS.map((preset) => {
+                      const active = replayFixtureAlias === preset.alias;
+                      return (
+                        <button
+                          key={preset.alias}
+                          type="button"
+                          className={`tab-btn ${active ? 'tab-btn--active' : ''}`}
+                          data-testid={`vllm-replay-fixture-${preset.alias}`}
+                          onClick={() => setReplayFixtureAlias(preset.alias)}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <VervainInferenceReplay
+                  key={replayFixtureAlias}
+                  evidence={JUDGE_REPLAY_REGISTRY.getRaw(replayFixtureAlias)}
+                  fromFixture
+                />
+              </div>
+            )}
 
             {showMathJson && (
               <pre className="raw-json-pre" data-testid="scoped-raw-json">

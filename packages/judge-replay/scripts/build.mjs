@@ -1,16 +1,18 @@
-import { cpSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = resolve(pkgRoot, "dist");
+const localTsc = resolve(pkgRoot, "node_modules/.bin/tsc");
+const tscBin = existsSync(localTsc) ? localTsc : resolve(pkgRoot, "../../node_modules/.bin/tsc");
 
 rmSync(distDir, { recursive: true, force: true });
 mkdirSync(distDir, { recursive: true });
 
 execFileSync(
-  resolve(pkgRoot, "node_modules/.bin/tsc"),
+  tscBin,
   ["-p", resolve(pkgRoot, "tsconfig.build.json")],
   { stdio: "inherit", cwd: pkgRoot }
 );

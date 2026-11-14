@@ -113,7 +113,7 @@ Edit `.env` locally (keep `.env` untracked; never commit API keys):
 | `RATE_LIMIT_MUTATIONS_PER_MINUTE` | `20` | Per-session mutation endpoint rate limit. |
 | `INFERENCE_PROOF_ARTIFACT_PATH` | *(empty)* | Optional path to a Carbon 3 `inference-proof.v1` JSON artifact; when unset (pre-`GPU GO`), `/api/inference-proof` reports `NO GPU RUN RECORDED` (`NOT_CONFIGURED`). |
 | `INFERENCE_PROOF_TRUST_ROOT_PATH` | *(empty)* | Optional path to a Carbon 3 `trust-root.v1` Ed25519 key bundle for signed proof verification. |
-| `INFERENCE_PROOF_PYTHON_VERIFIER_SRC` | *(empty)* | Optional path to Carbon 3's Python `evidence_verifier` `src` directory for dual-verifier confirmation. |
+| `EVIDENCE_VERIFIER_PYTHONPATH` / `INFERENCE_PROOF_PYTHON_VERIFIER_SRC` | `packages/evidence-verifier/src` *(auto-detected)* | Path to Carbon 3's Python `evidence_verifier` `src` directory for dual-verifier confirmation alongside the in-process TypeScript verifier. |
 | `INFERENCE_PROOF_REQUIRE_SIGNATURE` | `0` | Set to `1` to require Ed25519 signature verification against `INFERENCE_PROOF_TRUST_ROOT_PATH`. |
 
 ### 3. Run in development mode
@@ -155,6 +155,7 @@ npm run lint               # ESLint verification across src and tests
 
 # Proof & hygiene verifiers
 npm run proof:paired       # Terminal paired-proof runner outputting JSON comparison of Native only vs Native + Vervain
+npm run verify:evidence    # Carbon 3 Python + TS evidence-verifier gates (40 pytest checks across 35 JSON fixtures and 7 RUN_DIRs)
 npm run verify:bundle      # Confirms dist/client and tracked sources contain zero API keys, .env files, @google/genai bundles, or private paths
 npm run verify:claims      # Scans UI, shared contracts, docs, one-pagers, and scripts for prohibited overclaims, em dashes, and limitation labels
 npm audit                  # Dependency vulnerability audit

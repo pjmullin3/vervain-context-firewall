@@ -136,6 +136,12 @@ test.describe('Vervain Context Firewall: Clean-Browser Judge Path', () => {
     await expect(page.getByTestId('kv-mode-detail')).toContainText('0.000000');
     await page.getByTestId('kv-mode-tab-online_tiled_flash_recurrence').click();
     await expect(page.getByTestId('online-tile-table')).toContainText('0 reads');
+
+    // Verify integrated Carbon 4 9-step vLLM Paged-KV Attention Aperture Replay (@vervain/judge-replay)
+    await page.getByTestId('btn-toggle-vllm-replay').click();
+    const vllmReplaySection = page.getByTestId('vllm-judge-replay-panel');
+    await expect(vllmReplaySection).toBeVisible();
+    await expect(vllmReplaySection).toContainText('NO GPU RUN RECORDED');
   });
 
   test('enforces epoch-revocation withholding, clean reset, multi-session isolation, reduced motion, and responsive layouts', async ({

@@ -25,7 +25,8 @@
     "test:e2e": "playwright test",
     "proof:paired": "tsx scripts/run-paired-proof.ts",
     "verify:bundle": "tsx scripts/verify-bundle-hygiene.ts",
-    "verify:claims": "tsx scripts/verify-claim-discipline.ts"
+    "verify:claims": "tsx scripts/verify-claim-discipline.ts",
+    "verify:evidence": "PYTHONDONTWRITEBYTECODE=1 python3 verification/run_local_gates.py"
   },
   "dependencies": {
     "@google/genai": "^3.3.0",

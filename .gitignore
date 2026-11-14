@@ -9,7 +9,17 @@ playwright-report/
 test-results/
 .DS_Store
 *.log
+!verification/fixtures/**/*.log
 *.pem
 *.key
 .gcloud/
 .firebase/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+packages/evidence-verifier/ts/dist/
+packages/judge-replay/dist/
+packages/judge-replay/dist-demo/
+packages/judge-replay/node_modules/
+packages/judge-replay/playwright-report/
+packages/judge-replay/test-results/

@@ -93,7 +93,9 @@ export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCo
     geminiMaxRetries: parsePositiveInt(env.GEMINI_MAX_RETRIES, 2, 0, 5),
     geminiRetryBaseDelayMs: parsePositiveInt(env.GEMINI_RETRY_BASE_DELAY_MS, 250, 10, 5000),
     inferenceProofArtifactPath: (env.INFERENCE_PROOF_ARTIFACT_PATH ?? '').trim() || null,
-    evidenceVerifierPythonPath: (env.EVIDENCE_VERIFIER_PYTHONPATH ?? '').trim() || null,
+    evidenceVerifierPythonPath:
+      (env.EVIDENCE_VERIFIER_PYTHONPATH ?? env.INFERENCE_PROOF_PYTHON_VERIFIER_SRC ?? '').trim() ||
+      null,
     inferenceProofTrustRootPath: (env.INFERENCE_PROOF_TRUST_ROOT_PATH ?? '').trim() || null,
     inferenceProofRequireSignature: env.INFERENCE_PROOF_REQUIRE_SIGNATURE === '1',
   });
