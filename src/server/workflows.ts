@@ -44,7 +44,7 @@ import {
 import { executeGeminiEnvelope, type GeminiTransport } from './gemini.js';
 import type { AuditLedger } from './ledger.js';
 import { buildAndAppendRunReceipt } from './receipts.js';
-import { domainSeparatedDigest, type SafeStructuredLogger } from './redaction.js';
+import { domainSeparatedDigest, sha256Hex, type SafeStructuredLogger } from './redaction.js';
 import {
   computeReleasedResponseEvidence,
   type ResponseReleaseGate,
@@ -465,6 +465,7 @@ async function executeNativeOnlyControlArm(
   deps: WorkflowDependencies,
   authorityAtStart: ServerAuthoritySnapshot,
   retrievedChunks: readonly RetrievedChunk[],
+  query: RunQuery = FROZEN_RUN_QUERY,
 ): Promise<ArmExecutionView> {
   const startedAtMs = Date.now();
   const requestId = `req_ctrl_${crypto.randomBytes(10).toString('hex')}`;
@@ -476,7 +477,7 @@ async function executeNativeOnlyControlArm(
   const envelope = buildUnmediatedControlEnvelopeForSyntheticDefectOnly({
     scenario: 'paired_defect',
     requestId,
-    queryText: FROZEN_QUERY_TEXT,
+    queryText: query.text,
     rawChunks: retrievedChunks,
     model: deps.config.geminiModel,
     temperature: deps.config.geminiTemperature,
@@ -513,7 +514,7 @@ async function executeNativeOnlyControlArm(
     arm: 'native_only',
     authorityAtAdmission: authorityAtStart,
     policyEpochAtRelease: authorityAtStart.policyEpoch,
-    querySha256: FROZEN_QUERY_SHA256,
+    querySha256: query.sha256,
     retrievedChunks,
     admissionDecisions: null,
     envelopeSha256: envelope.envelopeSha256,
@@ -534,7 +535,10 @@ async function executeNativeOnlyControlArm(
     permittedTaskBasis: PERMITTED_TASK_BASES.UNMEDIATED_CONTROL_OBSERVATION,
     startedAtMs,
     completedAtMs,
-    extraSecretsToRedactCheck: deps.config.geminiApiKey ? [deps.config.geminiApiKey] : [],
+    extraSecretsToRedactCheck: [
+      ...(deps.config.geminiApiKey ? [deps.config.geminiApiKey] : []),
+      ...query.prohibitedInEvidence,
+    ],
   });
 
   const steps: LaneStepView[] = [
@@ -626,8 +630,8 @@ async function executeNativeOnlyControlArm(
     requestId,
     receiptId: receipt.receipt_id,
     fixtureId: FROZEN_FIXTURE_ID,
-    querySha256: FROZEN_QUERY_SHA256,
-    frozenQueryText: FROZEN_QUERY_TEXT,
+    querySha256: query.sha256,
+    frozenQueryText: query.text,
     structuralVerdict: 'cross_tenant_context_transmitted',
     outcomeSentence,
     counts: {
@@ -676,9 +680,11 @@ export async function executeVervainGovernedArm(params: {
   authorityAtStart: ServerAuthoritySnapshot;
   retrievedChunks: readonly RetrievedChunk[];
   afterDispatchBeforeReleaseHook?: () => Promise<void> | void;
+  query?: RunQuery;
 }): Promise<ArmExecutionView> {
   const { deps, scenario, authorityAtStart, retrievedChunks, afterDispatchBeforeReleaseHook } =
     params;
+  const query = params.query ?? FROZEN_RUN_QUERY;
   const startedAtMs = Date.now();
   const requestId = `req_vvn_${crypto.randomBytes(10).toString('hex')}`;
 
@@ -705,7 +711,7 @@ export async function executeVervainGovernedArm(params: {
   if (admission.admittedChunks.length > 0) {
     envelope = buildVervainGeminiEnvelope({
       requestId,
-      queryText: FROZEN_QUERY_TEXT,
+      queryText: query.text,
       admittedChunks: admission.admittedChunks,
       model: deps.config.geminiModel,
       temperature: deps.config.geminiTemperature,
@@ -802,7 +808,7 @@ export async function executeVervainGovernedArm(params: {
     arm: 'native_plus_vervain',
     authorityAtAdmission: authorityAtStart,
     policyEpochAtRelease,
-    querySha256: FROZEN_QUERY_SHA256,
+    querySha256: query.sha256,
     retrievedChunks,
     admissionDecisions: admission.decisions,
     envelopeSha256: envelope?.envelopeSha256 ?? null,
@@ -823,7 +829,10 @@ export async function executeVervainGovernedArm(params: {
     permittedTaskBasis,
     startedAtMs,
     completedAtMs,
-    extraSecretsToRedactCheck: deps.config.geminiApiKey ? [deps.config.geminiApiKey] : [],
+    extraSecretsToRedactCheck: [
+      ...(deps.config.geminiApiKey ? [deps.config.geminiApiKey] : []),
+      ...query.prohibitedInEvidence,
+    ],
   });
 
   const foreignWithheld = admission.decisions.some(
@@ -959,8 +968,8 @@ export async function executeVervainGovernedArm(params: {
     requestId,
     receiptId: receipt.receipt_id,
     fixtureId: FROZEN_FIXTURE_ID,
-    querySha256: FROZEN_QUERY_SHA256,
-    frozenQueryText: FROZEN_QUERY_TEXT,
+    querySha256: query.sha256,
+    frozenQueryText: query.text,
     structuralVerdict,
     outcomeSentence,
     counts: {
@@ -995,9 +1004,43 @@ export async function executeVervainGovernedArm(params: {
   });
 }
 
+/** The user question both arms of one run send to the model, with its content-free digest. */
+export interface RunQuery {
+  readonly text: string;
+  readonly sha256: string;
+  /** Strings the receipt content-hygiene scan must never find (the custom question text). */
+  readonly prohibitedInEvidence: readonly string[];
+}
+
+const FROZEN_RUN_QUERY: RunQuery = Object.freeze({
+  text: FROZEN_QUERY_TEXT,
+  sha256: FROZEN_QUERY_SHA256,
+  prohibitedInEvidence: Object.freeze([]),
+});
+
+/**
+ * Shortest custom question added to the receipt prohibited-content scan. Shorter strings would
+ * match fixed receipt vocabulary by chance (field names, reason codes) and fail the run; they are
+ * still never written, because receipts and logs only carry the question's SHA-256 and length.
+ */
+const MIN_SCANNED_QUESTION_LENGTH = 12;
+
+/** Builds the run query: the frozen question, or a validated custom one (text never logged). */
+export function buildRunQuery(question: string | null | undefined): RunQuery {
+  if (question === null || question === undefined) return FROZEN_RUN_QUERY;
+  return Object.freeze({
+    text: question,
+    sha256: sha256Hex(question),
+    prohibitedInEvidence: Object.freeze(
+      question.length >= MIN_SCANNED_QUESTION_LENGTH ? [question] : [],
+    ),
+  });
+}
+
 export async function runPairedProofWorkflow(
   deps: WorkflowDependencies,
   authorityAtStart: ServerAuthoritySnapshot,
+  options: { question?: string | null } = {},
 ): Promise<{
   runGroupId: string;
   nativeOnly: ArmExecutionView;
@@ -1010,18 +1053,28 @@ export async function runPairedProofWorkflow(
 
   const runGroupId = `pair_${crypto.randomBytes(8).toString('hex')}`;
   const brokenRetrieval = retrieveBrokenControlChunks('cross_tenant_filter_omission');
+  const query = buildRunQuery(options.question);
+  // Content-free: only the digest and length of the question are ever logged.
+  deps.logger.record('paired_run_question', {
+    run_group_id: runGroupId,
+    custom_question: query !== FROZEN_RUN_QUERY,
+    query_sha256: query.sha256,
+    query_length: query.text.length,
+  });
 
   // Execute Native only control arm and Native + Vervain governed arm on the exact same retrieved chunks
   const nativeOnly = await executeNativeOnlyControlArm(
     deps,
     authorityAtStart,
     brokenRetrieval.chunks,
+    query,
   );
   const nativePlusVervain = await executeVervainGovernedArm({
     deps,
     scenario: 'paired_defect',
     authorityAtStart,
     retrievedChunks: brokenRetrieval.chunks,
+    query,
   });
 
   deps.sessionStore.registerSessionReceipt(

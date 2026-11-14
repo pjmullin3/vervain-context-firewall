@@ -16,6 +16,7 @@ import {
   detectClientAuthorityOverride,
   parseStrictJson,
   validateEmptyMutationPayload,
+  validatePairedRunPayload,
   validatePersonaSessionPayload,
   type DemoStateResponse,
   type EnterpriseArchitectureResponse,
@@ -660,15 +661,31 @@ export async function handleApiOrProbeRequest(
 
     const parsedMutation = await parseAndValidateJsonPost(req, url, res);
     if (!parsedMutation.ok) return true;
-    const emptyCheck = validateEmptyMutationPayload(parsedMutation.value);
-    if (!emptyCheck.ok) {
-      sendApiError(
-        res,
-        mapParseErrorStatus(emptyCheck.code),
-        emptyCheck.code,
-        emptyCheck.message,
-      );
-      return true;
+    // run-paired accepts one optional user question; every other mutation takes an empty body.
+    let customQuestion: string | null = null;
+    if (pathname === '/api/demo/run-paired') {
+      const pairedCheck = validatePairedRunPayload(parsedMutation.value);
+      if (!pairedCheck.ok) {
+        sendApiError(
+          res,
+          mapParseErrorStatus(pairedCheck.code),
+          pairedCheck.code,
+          pairedCheck.message,
+        );
+        return true;
+      }
+      customQuestion = pairedCheck.value.question;
+    } else {
+      const emptyCheck = validateEmptyMutationPayload(parsedMutation.value);
+      if (!emptyCheck.ok) {
+        sendApiError(
+          res,
+          mapParseErrorStatus(emptyCheck.code),
+          emptyCheck.code,
+          emptyCheck.message,
+        );
+        return true;
+      }
     }
 
     const authority = requireValidSession(req, ctx, res);
@@ -744,7 +761,9 @@ export async function handleApiOrProbeRequest(
           if (!tryReserveGeminiCallsAtomic(2)) {
             return { kind: 'budget' as const };
           }
-          const paired = await runPairedProofWorkflow(workflowDeps, authority);
+          const paired = await runPairedProofWorkflow(workflowDeps, authority, {
+            question: customQuestion,
+          });
           return { kind: 'ok' as const, paired };
         },
       );
