@@ -1791,4 +1791,125 @@ describe('Wave 3 Adversarial: Strict JSON Parser, Status Laundering, Invariant F
       }
     }
   });
+
+  it('18. Cycle 9 regression: verifies Ed25519 trust-root.v1 signatures natively in Node 22 without Python and rejects forged, revoked, expired, or CLI-laundered signatures', () => {
+    const repoRoot = path.resolve(process.cwd());
+    const fixturesDir = path.join(repoRoot, 'verification', 'fixtures');
+    const trustRootPath = path.join(fixturesDir, 'ephemeral_test_trust_root.json');
+
+    // 9a. Pure Node 22 (pythonVerifierSrc: null) verifies valid_h200_tp1.json and valid_h200_tp8.json
+    for (const validFile of ['valid_h200_tp1.json', 'valid_h200_tp8.json']) {
+      const res = loadConfiguredInferenceProofStatus({
+        artifactPath: path.join(fixturesDir, validFile),
+        pythonVerifierSrc: null,
+        trustRootPath,
+        requireSignature: true,
+      });
+      expect(res.verifierVerdict, validFile).toBe('PASS');
+      expect(res.primaryReasonCode, validFile).toBe('PASS_VERIFIED');
+      expect(res.badgeState, validFile).toBe('RECORDED H200 RUN');
+      expect(res.runtimeManifest, validFile).not.toBeNull();
+    }
+
+    // Rejects untrusted, copied, and missing signatures in pure Node 22 without Python
+    const untrustedRes = loadConfiguredInferenceProofStatus({
+      artifactPath: path.join(fixturesDir, 'adversarial', 'mut_untrusted_signature.json'),
+      pythonVerifierSrc: null,
+      trustRootPath,
+      requireSignature: false,
+    });
+    expect(untrustedRes.verifierVerdict).toBe('FAIL');
+    expect(untrustedRes.reasonCodes).toContain('FAIL_SIG_UNTRUSTED_KEY');
+    expect(untrustedRes.runtimeManifest).toBeNull();
+
+    const copiedRes = loadConfiguredInferenceProofStatus({
+      artifactPath: path.join(fixturesDir, 'adversarial', 'mut_copied_signature.json'),
+      pythonVerifierSrc: null,
+      trustRootPath,
+      requireSignature: true,
+    });
+    expect(copiedRes.verifierVerdict).toBe('FAIL');
+    expect(copiedRes.reasonCodes).toContain('FAIL_SIG_REPLAY_OR_COPIED');
+    expect(copiedRes.runtimeManifest).toBeNull();
+
+    const missingSigRes = loadConfiguredInferenceProofStatus({
+      artifactPath: path.join(fixturesDir, 'adversarial', 'mut_missing_signature.json'),
+      pythonVerifierSrc: null,
+      trustRootPath,
+      requireSignature: true,
+    });
+    expect(missingSigRes.verifierVerdict).toBe('NO VERDICT');
+    expect(missingSigRes.reasonCodes).toContain('NV_SIG_MISSING');
+    expect(missingSigRes.runtimeManifest).toBeNull();
+
+    // 9b & 9c. Subverted Python CLI stub cannot launder forged Ed25519 signature, and invalid/revoked trust roots fail closed
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vervain-cycle9-tr-'));
+    try {
+      const stubPkgDir = path.join(tmpDir, 'py_src', 'evidence_verifier');
+      fs.mkdirSync(stubPkgDir, { recursive: true });
+      fs.writeFileSync(path.join(stubPkgDir, '__init__.py'), '', 'utf8');
+      fs.writeFileSync(
+        path.join(stubPkgDir, '__main__.py'),
+        'import json\nprint(json.dumps({"verdict":"PASS","primary_reason_code":"PASS_VERIFIED","reason_codes":["PASS_VERIFIED"],"sanitizer_result":{"passed":True,"finding_count":0}}))\n',
+        'utf8',
+      );
+
+      // Corrupt 1 byte of signature_value on valid_h200_tp8.json
+      const rawTp8 = JSON.parse(
+        fs.readFileSync(path.join(fixturesDir, 'valid_h200_tp8.json'), 'utf8'),
+      ) as Record<string, unknown>;
+      const sigObj = { ...(rawTp8['signature'] as Record<string, unknown>) };
+      const origB64 = String(sigObj['signature_value']);
+      const sigBuf = Buffer.from(origB64, 'base64');
+      sigBuf[0] = (sigBuf[0] ?? 0) ^ 0xff;
+      sigObj['signature_value'] = sigBuf.toString('base64');
+      rawTp8['signature'] = sigObj;
+      const forgedArtPath = path.join(tmpDir, 'forged_sig.json');
+      fs.writeFileSync(forgedArtPath, JSON.stringify(rawTp8), 'utf8');
+
+      const launderAttempt = loadConfiguredInferenceProofStatus({
+        artifactPath: forgedArtPath,
+        pythonVerifierSrc: path.join(tmpDir, 'py_src'),
+        trustRootPath,
+        requireSignature: true,
+      });
+      expect(launderAttempt.verifierVerdict).toBe('FAIL');
+      expect(launderAttempt.reasonCodes).toContain('FAIL_SIG_INVALID');
+      expect(launderAttempt.runtimeManifest).toBeNull();
+
+      // Revoked trust-root key fails closed
+      const trParsed = JSON.parse(fs.readFileSync(trustRootPath, 'utf8')) as {
+        schema_version: string;
+        trust_root_id: string;
+        keys: Array<Record<string, unknown>>;
+      };
+      trParsed.keys[0]!['status'] = 'revoked';
+      const revokedTrPath = path.join(tmpDir, 'revoked_tr.json');
+      fs.writeFileSync(revokedTrPath, JSON.stringify(trParsed), 'utf8');
+
+      const revokedRes = loadConfiguredInferenceProofStatus({
+        artifactPath: path.join(fixturesDir, 'valid_h200_tp8.json'),
+        pythonVerifierSrc: null,
+        trustRootPath: revokedTrPath,
+        requireSignature: true,
+      });
+      expect(revokedRes.verifierVerdict).toBe('FAIL');
+      expect(revokedRes.reasonCodes).toContain('FAIL_SIG_UNTRUSTED_KEY');
+      expect(revokedRes.runtimeManifest).toBeNull();
+
+      // Missing trustRootPath fails closed with VERIFIER_ERROR_TRUST_ROOT_INVALID
+      const missingTrRes = loadConfiguredInferenceProofStatus({
+        artifactPath: path.join(fixturesDir, 'valid_h200_tp8.json'),
+        pythonVerifierSrc: null,
+        trustRootPath: path.join(tmpDir, 'does_not_exist.json'),
+        requireSignature: true,
+      });
+      expect(missingTrRes.verifierVerdict).toBe('ERROR');
+      expect(missingTrRes.primaryReasonCode).toBe('VERIFIER_ERROR_TRUST_ROOT_INVALID');
+      expect(missingTrRes.badgeState).toBe('VERIFICATION FAILED');
+      expect(missingTrRes.runtimeManifest).toBeNull();
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

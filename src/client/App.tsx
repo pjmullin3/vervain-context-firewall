@@ -37,29 +37,41 @@ export function App() {
 
   const bootstrapSessionAndState = useCallback(async () => {
     setUi((prev) => ({ ...prev, loadingInitial: true, errorBanner: null }));
+    const autoOpenReplayFromUrl =
+      typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('run');
     try {
       const state = await fetchDemoState();
-      const arch = await fetchEnterpriseArchitecture().catch(() => null);
+      const [arch, initialScopedProof] = await Promise.all([
+        fetchEnterpriseArchitecture().catch(() => null),
+        autoOpenReplayFromUrl ? fetchScopedAttentionProof().catch(() => null) : Promise.resolve(null),
+      ]);
       setUi((prev) => ({
         ...prev,
         loadingInitial: false,
         demoState: state,
         enterpriseArchitecture: arch,
+        scopedProof: initialScopedProof ?? prev.scopedProof,
+        scopedLabOpen: initialScopedProof !== null ? true : prev.scopedLabOpen,
         chainVerification: state.ledgerSummary,
       }));
     } catch (err: unknown) {
       if (err instanceof ClientApiError && err.status === 401) {
         try {
           await createOrSwitchPersonaSession('alder');
-          const [freshState, arch] = await Promise.all([
+          const [freshState, arch, initialScopedProof] = await Promise.all([
             fetchDemoState(),
             fetchEnterpriseArchitecture().catch(() => null),
+            autoOpenReplayFromUrl
+              ? fetchScopedAttentionProof().catch(() => null)
+              : Promise.resolve(null),
           ]);
           setUi((prev) => ({
             ...prev,
             loadingInitial: false,
             demoState: freshState,
             enterpriseArchitecture: arch,
+            scopedProof: initialScopedProof ?? prev.scopedProof,
+            scopedLabOpen: initialScopedProof !== null ? true : prev.scopedLabOpen,
             chainVerification: freshState.ledgerSummary,
           }));
           return;

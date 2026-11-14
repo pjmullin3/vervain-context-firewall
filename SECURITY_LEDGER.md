@@ -130,4 +130,18 @@ Out-of-scope boundaries (explicitly unmediated here):
   - Updated `containsDecodedPlantedValue` to test both `[0, 1]` hex nibble offsets across `PLANTED_LOWER` and `FIXTURE_TEXT` variants.
   - Gated `runtimeManifest` and `exclusions` exposure strictly on `sanitizerPassed && verifierVerdict === 'PASS'` in both `evaluateInferenceProofArtifactRaw` and the Python CLI merge path of `loadConfiguredInferenceProofStatus`.
   - Checked `NaN` / `Infinity` / `-Infinity` prior to numeric `-` dispatch in `parseStrictInferenceProofJson`, enforced positive integer `1 <= tp_size <= gpu_count` and `/^[0-9a-f]{64}$/` across all `receipt_chain` digests, and split `detectClientAuthorityOverride` query inspection into a two-pass check prioritizing `authority_override_rejected`.
-- **Regression tests**: `tests/adversarial/enterprise-and-inference-proof.test.ts` (`17 of 17` suites passing, including Cycle 8 regression suite).
+- **Regression tests**: `tests/adversarial/enterprise-and-inference-proof.test.ts` (`18 of 18` suites passing, including Cycle 8 and Cycle 9 regression suites).
+
+---
+
+## Cycle 9: Pure Node 22 Ed25519 `trust-root.v1` Verification, External CLI Anti-Laundering, and Replay Deep-Link Authority Stripping
+
+- **Target surface**: `src/server/inference-proof.ts`, `src/client/components/ScopedAttentionLab.tsx`, `src/client/App.tsx`
+- **Adversarial hypothesis**:
+  1. In minimal container runtimes without Python installed (`node:22-bookworm-slim` on Cloud Run), `loadConfiguredInferenceProofStatus` previously relied on `pythonVerifierSrc` to verify Ed25519 `trust-root.v1` signatures, returning `NV_TRUST_ROOT_UNPROVIDED` (`NO VERDICT`) even when a valid `trust-root.v1` and Ed25519 signature were supplied.
+  2. Conversely, if `pythonVerifierSrc` pointed to a subverted external script returning `{"verdict":"PASS"}`, in-process TypeScript previously allowed `NV_TRUST_ROOT_UNPROVIDED` to clear without verifying the Ed25519 signature bytes against `trustRootPath` directly in Node `node:crypto`.
+  3. Navigating to browser deep links containing authority query overrides (`/?run=local-paired&step=7&tenant=beacon&scope=99`) needed deterministic UI stripping and visible override rejection without altering server-owned session authority.
+- **Root-cause fix**:
+  - Implemented native RFC 8410 Ed25519 SPKI `crypto.verify` and strict `trust-root.v1` parsing (`parseStrictTrustRootJson`, `verifyEmbeddedEd25519Signature`) directly in `src/server/inference-proof.ts`, enforcing `key_id`, `trust_root_id`, `status === 'active'`, `allow_ephemeral_demo`, `not_before <= signed_at <= not_after`, constant-time `signed_digest_sha256` binding, and 64-byte Ed25519 verification in-process before any external CLI merge.
+  - Wired Carbon 4 `resolveDeepLinkSelection` in `ScopedAttentionLab.tsx` and `App.tsx` so safe UI parameters (`run`, `step`, `lane`, `receipt`) open the requested fixture state while untrusted authority parameters (`tenant`, `scope`, etc.) are stripped and flagged in `rejected-deeplink-notice`.
+- **Regression tests**: `tests/adversarial/enterprise-and-inference-proof.test.ts` (test 18) and `tests/e2e/judge-flow.spec.ts` (passing).

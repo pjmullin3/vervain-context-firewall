@@ -15,13 +15,13 @@
   "integrated_lanes": {
     "carbon_1_product_lead": {
       "source_branch": "main",
-      "commits": ["fe54534", "517aa6e", "4d24aa0"],
+      "commits": ["fe54534", "517aa6e", "4d24aa0", "da90ad9"],
       "status": "integrated_and_verified"
     },
     "daybreak_security_loop": {
       "source_branch": "daybreak/security-loop",
       "source_commits": ["37e16ed", "d78fc35"],
-      "adversarial_cycles_completed": 8,
+      "adversarial_cycles_completed": 9,
       "status": "integrated_and_superseded_on_main"
     },
     "carbon_3_evidence_verifier": {
@@ -50,7 +50,7 @@
     "lint": "npm run lint",
     "vitest_suite": {
       "command": "npm test",
-      "tests_passed": 105
+      "tests_passed": 106
     },
     "build": "npm run build",
     "bundle_hygiene": "npm run verify:bundle",

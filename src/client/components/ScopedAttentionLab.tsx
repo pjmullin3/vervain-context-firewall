@@ -7,10 +7,11 @@
  * browser never supplies a scope parameter, and GPU metrics are never staged or faked.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   VervainInferenceReplay,
   createSafeFixtureRegistry,
+  resolveDeepLinkSelection,
 } from '../../../packages/judge-replay/src/index.js';
 import awaitingH200FixtureJson from '../../../fixtures/judge-replay/awaiting-h200-incomplete.json';
 import localPairedFixtureJson from '../../../fixtures/judge-replay/local-paired-replay.json';
@@ -84,9 +85,23 @@ export function ScopedAttentionLab({
   onToggle,
   inferenceProof,
 }: ScopedAttentionLabProps) {
+  const initialSearch = typeof window !== 'undefined' ? window.location.search : '';
+  const initialDeepLink = useMemo(
+    () =>
+      resolveDeepLinkSelection(
+        initialSearch,
+        JUDGE_REPLAY_REGISTRY.aliases,
+        'local-paired',
+      ),
+    [initialSearch],
+  );
   const [showMathJson, setShowMathJson] = useState(false);
-  const [showVllmReplay, setShowVllmReplay] = useState(false);
-  const [replayFixtureAlias, setReplayFixtureAlias] = useState<string>('local-paired');
+  const [showVllmReplay, setShowVllmReplay] = useState(() =>
+    new URLSearchParams(initialSearch).has('run'),
+  );
+  const [replayFixtureAlias, setReplayFixtureAlias] = useState<string>(
+    () => initialDeepLink.runAlias,
+  );
   const [selectedKvModeId, setSelectedKvModeId] = useState<KvLifecycleModeId>(
     'contaminated_block_table',
   );
@@ -682,6 +697,22 @@ export function ScopedAttentionLab({
                   key={replayFixtureAlias}
                   evidence={JUDGE_REPLAY_REGISTRY.getRaw(replayFixtureAlias)}
                   fromFixture
+                  initialLane={
+                    replayFixtureAlias === initialDeepLink.runAlias
+                      ? initialDeepLink.lane
+                      : undefined
+                  }
+                  initialStepIndex={
+                    replayFixtureAlias === initialDeepLink.runAlias
+                      ? initialDeepLink.stepIndex
+                      : undefined
+                  }
+                  initialReceiptOpen={
+                    replayFixtureAlias === initialDeepLink.runAlias
+                      ? initialDeepLink.receiptOpen
+                      : undefined
+                  }
+                  rejectedDeepLinkParams={initialDeepLink.rejectedParams}
                 />
               </div>
             )}

@@ -7,7 +7,13 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createPublicKey,
+  timingSafeEqual,
+  verify as cryptoVerify,
+  type KeyObject,
+} from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { SCOPED_ATTENTION_LIMITATION_LABEL } from '../shared/config.js';
@@ -68,6 +74,7 @@ const EXPECTED_PAIRED_ARMS = [
 
 export interface EvaluateInferenceProofOptions {
   readonly requireSignature?: boolean;
+  readonly trustRootJson?: string | null;
   readonly nowIso?: string;
 }
 
@@ -1021,10 +1028,242 @@ function extractExclusionsList(
   return Object.freeze(collected);
 }
 
+const MAX_TRUST_ROOT_BYTES = 256 * 1024;
+const ED25519_SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
+
+interface ParsedTrustRootKey {
+  readonly keyId: string;
+  readonly publicKey: KeyObject;
+  readonly status: 'active' | 'revoked';
+  readonly notBeforeMs: number;
+  readonly notAfterMs: number;
+  readonly allowEphemeralDemo: boolean;
+}
+
+interface ParsedTrustRoot {
+  readonly trustRootId: string;
+  readonly keysById: ReadonlyMap<string, ParsedTrustRootKey>;
+}
+
+function decodeStrictBase64Exact(raw: string): Buffer | null {
+  if (raw.length === 0 || raw.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
+    return null;
+  }
+  const decoded = Buffer.from(raw, 'base64');
+  if (decoded.toString('base64') !== raw) {
+    return null;
+  }
+  return decoded;
+}
+
+function parseStrictUtcIsoMs(ts: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(ts)) {
+    return null;
+  }
+  const ms = Date.parse(ts);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function parseStrictTrustRootJson(rawTrustRootJson: string): ParsedTrustRoot | null {
+  let parsed: unknown;
+  try {
+    parsed = parseStrictInferenceProofJson(rawTrustRootJson);
+  } catch {
+    return null;
+  }
+  if (!isPlainRecord(parsed) || parsed['schema_version'] !== 'trust-root.v1') {
+    return null;
+  }
+  const trustRootId = parsed['trust_root_id'];
+  const rawKeys = parsed['keys'];
+  if (
+    typeof trustRootId !== 'string' ||
+    trustRootId.length === 0 ||
+    !Array.isArray(rawKeys) ||
+    rawKeys.length === 0
+  ) {
+    return null;
+  }
+
+  const keysById = new Map<string, ParsedTrustRootKey>();
+  for (const entry of rawKeys) {
+    if (!isPlainRecord(entry)) return null;
+    const keyId = entry['key_id'];
+    const alg = entry['algorithm'];
+    const pubB64 = entry['public_key_b64'];
+    const status = entry['status'];
+    const purpose = entry['purpose'];
+    const nb = entry['not_before'];
+    const na = entry['not_after'];
+    const allowEphemeral = entry['allow_ephemeral_demo'];
+
+    if (
+      typeof keyId !== 'string' ||
+      keyId.length === 0 ||
+      keysById.has(keyId) ||
+      alg !== 'ed25519' ||
+      typeof pubB64 !== 'string' ||
+      (status !== 'active' && status !== 'revoked') ||
+      purpose !== 'inference-proof-signing' ||
+      typeof nb !== 'string' ||
+      typeof na !== 'string' ||
+      typeof allowEphemeral !== 'boolean'
+    ) {
+      return null;
+    }
+
+    const pubRaw = decodeStrictBase64Exact(pubB64);
+    const nbMs = parseStrictUtcIsoMs(nb);
+    const naMs = parseStrictUtcIsoMs(na);
+    if (!pubRaw || pubRaw.length !== 32 || nbMs === null || naMs === null || nbMs > naMs) {
+      return null;
+    }
+
+    let pubKeyObj: KeyObject;
+    try {
+      pubKeyObj = createPublicKey({
+        key: Buffer.concat([ED25519_SPKI_PREFIX, pubRaw]),
+        format: 'der',
+        type: 'spki',
+      });
+    } catch {
+      return null;
+    }
+
+    keysById.set(keyId, {
+      keyId,
+      publicKey: pubKeyObj,
+      status,
+      notBeforeMs: nbMs,
+      notAfterMs: naMs,
+      allowEphemeralDemo: allowEphemeral,
+    });
+  }
+
+  return { trustRootId, keysById };
+}
+
+function buildEd25519SignaturePayload(
+  art: Record<string, unknown>,
+  computedSha: string,
+): Buffer {
+  const schemaVersion = typeof art['schema_version'] === 'string' ? art['schema_version'] : '';
+  const runId = typeof art['run_id'] === 'string' ? art['run_id'] : '';
+  const evidenceStatus = typeof art['evidence_status'] === 'string' ? art['evidence_status'] : '';
+  const src = isPlainRecord(art['source']) ? art['source'] : {};
+  const gitSha = typeof src['git_sha'] === 'string' ? src['git_sha'] : '';
+  const vllmSha = typeof src['vllm_sha'] === 'string' ? src['vllm_sha'] : '';
+  const joined = [
+    'vervain.proof.v1',
+    schemaVersion,
+    runId,
+    evidenceStatus,
+    gitSha,
+    vllmSha,
+    computedSha,
+  ].join('|');
+  return Buffer.from(joined, 'utf8');
+}
+
+function verifyEmbeddedEd25519Signature(params: {
+  art: Record<string, unknown>;
+  computedSha: string;
+  requireSignature: boolean;
+  trustRoot: ParsedTrustRoot | null;
+}): string | null {
+  const { art, computedSha, requireSignature, trustRoot } = params;
+  const rawSig = art['signature'];
+  if (!('signature' in art) || rawSig === undefined || rawSig === null) {
+    return requireSignature ? 'NV_SIG_MISSING' : null;
+  }
+
+  if (!isPlainRecord(rawSig)) {
+    return 'FAIL_SIG_INVALID';
+  }
+
+  const alg = rawSig['algorithm'];
+  if (typeof alg !== 'string' || alg.toLowerCase() !== 'ed25519') {
+    return 'FAIL_SIG_ALG_UNSAFE';
+  }
+
+  if (trustRoot === null) {
+    const signedDigest = rawSig['signed_digest_sha256'];
+    if (
+      typeof signedDigest !== 'string' ||
+      !timingSafeHexDigestEqual(signedDigest, computedSha)
+    ) {
+      return 'FAIL_SIG_REPLAY_OR_COPIED';
+    }
+    return requireSignature ? 'NV_TRUST_ROOT_UNPROVIDED' : null;
+  }
+
+  const keyId = rawSig['key_id'];
+  const trId = rawSig['trust_root_id'];
+  if (
+    typeof keyId !== 'string' ||
+    keyId.length === 0 ||
+    typeof trId !== 'string' ||
+    trId.length === 0 ||
+    trId !== trustRoot.trustRootId
+  ) {
+    return 'FAIL_SIG_KEY_ID_MISMATCH';
+  }
+
+  const trKey = trustRoot.keysById.get(keyId);
+  if (!trKey || trKey.status !== 'active') {
+    return 'FAIL_SIG_UNTRUSTED_KEY';
+  }
+
+  if (rawSig['ephemeral_demo_only'] === true && !trKey.allowEphemeralDemo) {
+    return 'FAIL_SIG_UNTRUSTED_KEY';
+  }
+
+  const signedAtRaw = rawSig['signed_at'];
+  if (typeof signedAtRaw !== 'string') {
+    return 'FAIL_SIG_INVALID';
+  }
+  const signedAtMs = parseStrictUtcIsoMs(signedAtRaw);
+  if (signedAtMs === null) {
+    return 'FAIL_SIG_INVALID';
+  }
+  if (signedAtMs < trKey.notBeforeMs || signedAtMs > trKey.notAfterMs) {
+    return 'FAIL_SIG_UNTRUSTED_KEY';
+  }
+
+  const signedDigest = rawSig['signed_digest_sha256'];
+  if (
+    typeof signedDigest !== 'string' ||
+    !timingSafeHexDigestEqual(signedDigest, computedSha)
+  ) {
+    return 'FAIL_SIG_REPLAY_OR_COPIED';
+  }
+
+  const sigVal = rawSig['signature_value'];
+  if (typeof sigVal !== 'string') {
+    return 'FAIL_SIG_INVALID';
+  }
+  const sigBytes = decodeStrictBase64Exact(sigVal);
+  if (!sigBytes || sigBytes.length !== 64) {
+    return 'FAIL_SIG_INVALID';
+  }
+
+  const payload = buildEd25519SignaturePayload(art, computedSha);
+  try {
+    if (!cryptoVerify(null, payload, trKey.publicKey, sigBytes)) {
+      return 'FAIL_SIG_INVALID';
+    }
+  } catch {
+    return 'FAIL_SIG_INVALID';
+  }
+
+  return null;
+}
+
 function evaluateCoreInvariants(
   art: Record<string, unknown>,
   computedSha: string,
   requireSignature: boolean,
+  trustRoot: ParsedTrustRoot | null,
 ): string[] {
   const codes: string[] = [];
 
@@ -1093,27 +1332,15 @@ function evaluateCoreInvariants(
     return codes;
   }
 
-  // Signature block validation and policy check
-  if ('signature' in art && art['signature'] !== undefined) {
-    const sig = art['signature'];
-    if (!isPlainRecord(sig)) {
-      codes.push('FAIL_SIG_INVALID');
-    } else {
-      const alg = sig['algorithm'];
-      const signedDigest = sig['signed_digest_sha256'];
-      if (typeof alg !== 'string' || alg.toLowerCase() !== 'ed25519') {
-        codes.push('FAIL_SIG_ALG_UNSAFE');
-      } else if (
-        typeof signedDigest !== 'string' ||
-        !timingSafeHexDigestEqual(signedDigest, computedSha)
-      ) {
-        codes.push('FAIL_SIG_REPLAY_OR_COPIED');
-      } else if (requireSignature) {
-        codes.push('NV_TRUST_ROOT_UNPROVIDED');
-      }
-    }
-  } else if (requireSignature) {
-    codes.push('NV_SIG_MISSING');
+  // Signature block validation and policy check (native Node 22 Ed25519 when trustRoot present)
+  const sigReasonCode = verifyEmbeddedEd25519Signature({
+    art,
+    computedSha,
+    requireSignature,
+    trustRoot,
+  });
+  if (sigReasonCode !== null) {
+    codes.push(sigReasonCode);
   }
 
   // Status honesty vs mock/local hardware markers
@@ -1695,7 +1922,21 @@ export function evaluateInferenceProofArtifactRaw(
     codes.push('FAIL_DIGEST_MISMATCH');
   }
 
-  const invariantCodes = evaluateCoreInvariants(parsed, computedSha, requireSignature);
+  let parsedTrustRoot: ParsedTrustRoot | null = null;
+  const rawTrustRootJson = options?.trustRootJson;
+  if (typeof rawTrustRootJson === 'string' && rawTrustRootJson.trim().length > 0) {
+    parsedTrustRoot = parseStrictTrustRootJson(rawTrustRootJson);
+    if (parsedTrustRoot === null) {
+      codes.push('VERIFIER_ERROR_TRUST_ROOT_INVALID');
+    }
+  }
+
+  const invariantCodes = evaluateCoreInvariants(
+    parsed,
+    computedSha,
+    requireSignature,
+    parsedTrustRoot,
+  );
   codes.push(...invariantCodes);
 
   const mapped = mapBadgeAndVerdict({
@@ -1967,10 +2208,33 @@ export function loadConfiguredInferenceProofStatus(
   }
 
   const requireSignature = Boolean(options?.requireSignature);
-  const localStatus = evaluateInferenceProofArtifactRaw(rawJsonText, {
+  const rawTrustRootPath = (options?.trustRootPath ?? '').trim();
+  let trustRootJson: string | null = null;
+  let trustRootReadFailed = false;
+  if (rawTrustRootPath.length > 0) {
+    try {
+      const resolvedTrPath = path.resolve(rawTrustRootPath);
+      const trStat = fs.statSync(resolvedTrPath);
+      if (!trStat.isFile() || trStat.size > MAX_TRUST_ROOT_BYTES) {
+        trustRootReadFailed = true;
+      } else {
+        const trBytes = fs.readFileSync(resolvedTrPath);
+        trustRootJson = new TextDecoder('utf-8', { fatal: true }).decode(trBytes);
+        if (trustRootJson.trim().length === 0) {
+          trustRootReadFailed = true;
+        }
+      }
+    } catch {
+      trustRootReadFailed = true;
+    }
+  }
+
+  const baseLocalStatus = evaluateInferenceProofArtifactRaw(rawJsonText, {
     requireSignature,
+    trustRootJson: trustRootReadFailed ? '{"__invalid_trust_root__":true}' : trustRootJson,
     nowIso: checkedAtIso,
   });
+  const localStatus = baseLocalStatus;
 
   const rawPythonSrc = (options?.pythonVerifierSrc ?? '').trim();
   if (rawPythonSrc.length === 0 || !fs.existsSync(rawPythonSrc)) {

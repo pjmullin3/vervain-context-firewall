@@ -188,6 +188,13 @@ test.describe('Vervain Context Firewall: Clean-Browser Judge Path', () => {
     await expect(pageA.getByTestId('empty-proof-stage')).toBeVisible();
     await expect(pageB.getByTestId('strip-policy')).toContainText('beacon-context@11');
 
+    // Deep-link URL with untrusted authority params opens replay safely while rejecting tenant/scope overrides
+    await pageA.goto('/?run=local-paired&step=7&lane=vervain&receipt=open&tenant=beacon&scope=99');
+    await expect(pageA.getByTestId('strip-persona')).toContainText('Tenant Alder');
+    await expect(pageA.getByTestId('vllm-judge-replay-panel')).toBeVisible();
+    await expect(pageA.getByTestId('receipt-drawer')).toBeVisible();
+    await expect(pageA.getByTestId('rejected-deeplink-notice')).toContainText('tenant');
+
     await contextA.close();
     await contextB.close();
   });

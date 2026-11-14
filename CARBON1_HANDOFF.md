@@ -9,8 +9,8 @@
 
 | Swarm Lane | Source Worktree & Branch | Source Commit SHAs | Status on `main` |
 | :--- | :--- | :--- | :--- |
-| **Builder 1: Product Lead (Full-Stack App, Gemini SDK, Receipts, Open-Weight KV Workbench)** | `/Users/pjmullin/Desktop/vervain-carbon-demo` (`main`) | `fe54534`, `517aa6e`, `4d24aa0` | **Integrated & Verified** (`105/105` Vitest, `2/2` Playwright E2E, `8` adversarial cycles) |
-| **Daybreak Security Loop** | `/Users/pjmullin/Desktop/vervain-carbon-daybreak` (`daybreak/security-loop`) | `37e16ed`, `d78fc35` | **Integrated & Superseded** (`Cycles 1-8` on `main` in `SECURITY_LEDGER.md`) |
+| **Builder 1: Product Lead (Full-Stack App, Gemini SDK, Receipts, Open-Weight KV Workbench)** | `/Users/pjmullin/Desktop/vervain-carbon-demo` (`main`) | `fe54534`, `517aa6e`, `4d24aa0`, `da90ad9` | **Integrated & Verified** (`106/106` Vitest, `2/2` Playwright E2E, `9` adversarial cycles) |
+| **Daybreak Security Loop** | `/Users/pjmullin/Desktop/vervain-carbon-daybreak` (`daybreak/security-loop`) | `37e16ed`, `d78fc35` | **Integrated & Superseded** (`Cycles 1-9` on `main` in `SECURITY_LEDGER.md`) |
 | **Builder 3: Independent Evidence Verifier** | `/Users/pjmullin/Desktop/vervain-carbon-evidence-lane` (`carbon/evidence`) | `1f40eb0`, `0d8df46` | **Cherry-Picked & Wired on `main`** (`b147780`, `9c44b2d`; `CARBON3_HANDOFF.md` + `CARBON3_HANDOFF.json`, `npm run verify:evidence` green) |
 | **Builder 4: Judge Causal Replay (`@vervain/judge-replay`)** | `/Users/pjmullin/Desktop/vervain-carbon-experience-lane` (`carbon/experience`) | `339b07f`, `b5e65d5`, `3bee8f0`, `4a6157e` | **Cherry-Picked & Mounted on `main`** (`c25d363`..`4b14a6f`; embedded inside `ScopedAttentionLab.tsx` with `5` pre-GPU fixtures) |
 | **Builder 2: Self-Hosted `vLLM` Paged-KV Enforcement** | `/Users/pjmullin/Desktop/vervain-carbon-inference-lane` (`carbon/scoped-attention`) | Base `6c1fd6e` (lane builder active in isolated worktree) | **Typed Seam Ready on `main`** (`INFERENCE_PROOF_ARTIFACT_PATH` + `GET /api/inference-proof` + Carbon 3 verifier ready for post-`GPU GO` artifact) |
@@ -40,7 +40,7 @@ Run from `/Users/pjmullin/Desktop/vervain-carbon-demo`:
 ```bash
 npm run typecheck          # Strict tsc across client, shared, server, scripts, tests, and embedded judge-replay
 npm run lint               # ESLint verification across src and tests
-npm test                   # 105 deterministic unit, integration, and 8-cycle adversarial Vitest tests
+npm test                   # 106 deterministic unit, integration, and 9-cycle adversarial Vitest tests
 npm run build              # Vite client bundle (dist/client) + server compile (dist/server)
 npm run verify:bundle      # Verifies 0 API keys, .env files, or @google/genai imports in dist/client
 npm run verify:claims      # Verifies 0 prohibited overclaims, 0 em dashes, and required limitation banners (37 files)
