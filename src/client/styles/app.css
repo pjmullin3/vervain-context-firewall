@@ -685,7 +685,8 @@ select {
 
 .kv-val {
   color: var(--text-primary);
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 /* Evidence Drawer & Coverage Limits */

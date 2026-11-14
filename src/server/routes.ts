@@ -18,7 +18,9 @@ import {
   validateEmptyMutationPayload,
   validatePersonaSessionPayload,
   type DemoStateResponse,
+  type EnterpriseArchitectureResponse,
   type RuntimeStatusView,
+  type ScopedAttentionProofView,
 } from '../shared/contracts.js';
 import { API_ERROR_CODES, type ApiErrorCode } from '../shared/reason-codes.js';
 import type { ServerConfig } from './config.js';
@@ -27,7 +29,14 @@ import {
   OfficialGoogleGenAITransport,
   type GeminiTransport,
 } from './gemini.js';
+import { loadConfiguredInferenceProofStatus } from './inference-proof.js';
 import { canonicalJsonString, type AuditLedger } from './ledger.js';
+import {
+  OPEN_WEIGHT_WORKBENCH_LIMITATION_LABEL,
+  buildOpenWeightKvWorkbenchForSession,
+  getEnterprisePresets,
+  getOpenWeightEngineProfiles,
+} from './open-weight-workbench.js';
 import type { SafeStructuredLogger } from './redaction.js';
 import type { ResponseReleaseGate } from './release.js';
 import { buildScopedAttentionProofForSession } from './scoped-attention.js';
@@ -436,8 +445,65 @@ export async function handleApiOrProbeRequest(
       if (pathname === '/api/demo/scoped-attention') {
         const authority = requireValidSession(req, ctx, res);
         if (!authority) return true;
-        const proof = buildScopedAttentionProofForSession(authority);
-        sendJson(res, 200, proof);
+        const baseProof = buildScopedAttentionProofForSession(authority);
+        const workbench = buildOpenWeightKvWorkbenchForSession(authority);
+        const enrichedProof: ScopedAttentionProofView = Object.freeze({
+          ...baseProof,
+          kvModes: workbench.kvModes,
+          onlineTileSteps: workbench.onlineTileSteps,
+          engineProfiles: workbench.engineProfiles,
+        });
+        sendJson(res, 200, enrichedProof);
+        return true;
+      }
+
+      if (pathname === '/api/inference-proof') {
+        if ([...url.searchParams.keys()].length > 0) {
+          sendApiError(
+            res,
+            400,
+            API_ERROR_CODES.INVALID_REQUEST,
+            'Query parameters are not accepted on /api/inference-proof.',
+          );
+          return true;
+        }
+        const authority = requireValidSession(req, ctx, res);
+        if (!authority) return true;
+        const proofStatus = loadConfiguredInferenceProofStatus({
+          artifactPath: ctx.config.inferenceProofArtifactPath,
+          pythonVerifierSrc: ctx.config.evidenceVerifierPythonPath,
+          trustRootPath: ctx.config.inferenceProofTrustRootPath,
+          requireSignature: ctx.config.inferenceProofRequireSignature,
+        });
+        sendJson(res, 200, proofStatus);
+        return true;
+      }
+
+      if (pathname === '/api/demo/enterprise-architecture') {
+        if ([...url.searchParams.keys()].length > 0) {
+          sendApiError(
+            res,
+            400,
+            API_ERROR_CODES.INVALID_REQUEST,
+            'Query parameters are not accepted on /api/demo/enterprise-architecture.',
+          );
+          return true;
+        }
+        const authority = requireValidSession(req, ctx, res);
+        if (!authority) return true;
+        const inferenceProof = loadConfiguredInferenceProofStatus({
+          artifactPath: ctx.config.inferenceProofArtifactPath,
+          pythonVerifierSrc: ctx.config.evidenceVerifierPythonPath,
+          trustRootPath: ctx.config.inferenceProofTrustRootPath,
+          requireSignature: ctx.config.inferenceProofRequireSignature,
+        });
+        const archBody: EnterpriseArchitectureResponse = Object.freeze({
+          limitationNote: OPEN_WEIGHT_WORKBENCH_LIMITATION_LABEL,
+          presets: getEnterprisePresets(),
+          engineProfiles: getOpenWeightEngineProfiles(),
+          inferenceProof,
+        });
+        sendJson(res, 200, archBody);
         return true;
       }
 
@@ -580,6 +646,8 @@ export async function handleApiOrProbeRequest(
       if (
         pathname === '/api/demo/state' ||
         pathname === '/api/demo/scoped-attention' ||
+        pathname === '/api/demo/enterprise-architecture' ||
+        pathname === '/api/inference-proof' ||
         pathname === '/api/ledger/verify' ||
         pathname.startsWith('/api/receipts/')
       ) {

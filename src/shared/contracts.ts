@@ -304,6 +304,129 @@ export interface ScopedBlockEvidence {
     | 'masked_invalid_slot';
 }
 
+export type KvLifecycleModeId =
+  | 'contaminated_block_table'
+  | 'prefix_cache_hash_collision'
+  | 'stale_allocation_generation'
+  | 'online_tiled_flash_recurrence';
+
+export interface OnlineTileStepEvidence {
+  readonly stepIndex: number;
+  readonly logicalSlot: number;
+  readonly physicalBlockId: number;
+  readonly blockScopeHex: string;
+  readonly allocationGeneration: number;
+  readonly expectedGeneration: number;
+  readonly headerCheckDisposition:
+    | 'loaded_authorized_tile'
+    | 'skipped_foreign_scope_zero_kv_read'
+    | 'skipped_stale_generation_zero_kv_read';
+  readonly kvTensorReadsPerformed: number;
+  readonly runningMaxLogitM: number | null;
+  readonly runningDenomL: number;
+  readonly runningNormalizedOutput: readonly number[];
+}
+
+export interface KvLifecycleModeEvidence {
+  readonly modeId: KvLifecycleModeId;
+  readonly title: string;
+  readonly engineSurface: string;
+  readonly defectMechanism: string;
+  readonly vervainControl: string;
+  readonly unguardedOutcomeSummary: string;
+  readonly governedOutcomeSummary: string;
+  readonly unguardedForeignMass: number;
+  readonly governedForeignMass: number;
+  readonly prefixHashUnguardedHex: string;
+  readonly prefixHashSaltedHex: string;
+  readonly maxOutputDeltaVsCleanTwin: number;
+}
+
+export interface OpenWeightEngineProfile {
+  readonly engineId: 'vllm' | 'sglang' | 'ollama' | 'dynamo' | 'gemini_api';
+  readonly displayName: string;
+  readonly deploymentClass: 'open_weight_self_hosted' | 'neocloud_disaggregated' | 'hosted_frontier_api';
+  readonly kvAndPrefixSurface: string;
+  readonly unguardedFailureMode: string;
+  readonly vervainEnforcementHook: string;
+  readonly demoEvidenceStatus: 'active_in_this_app' | 'reference_simulation_only';
+}
+
+export type InferenceProofBadgeState =
+  | 'NO GPU RUN RECORDED'
+  | 'LIVE H200 RUN'
+  | 'RECORDED H200 RUN'
+  | 'LOCAL TEST'
+  | 'INCOMPLETE'
+  | 'UNSUPPORTED'
+  | 'NO VERDICT'
+  | 'VERIFICATION FAILED';
+
+export interface InferenceProofStatusView {
+  readonly badgeState: InferenceProofBadgeState;
+  readonly verifierVerdict: 'PASS' | 'FAIL' | 'NO VERDICT' | 'ERROR' | 'NOT_CONFIGURED';
+  readonly primaryReasonCode: string;
+  readonly reasonCodes: readonly string[];
+  readonly claimedEvidenceStatus: 'live' | 'recorded' | 'local_only' | 'incomplete' | 'none';
+  readonly verifiedEvidenceStatus:
+    | 'live'
+    | 'recorded'
+    | 'local_only'
+    | 'incomplete'
+    | 'unverified'
+    | 'none';
+  readonly runId: string | null;
+  readonly artifactSha256Declared: string | null;
+  readonly artifactSha256Computed: string | null;
+  readonly digestMatch: boolean | null;
+  readonly sanitizerPassed: boolean;
+  readonly sanitizerFindingsCount: number;
+  readonly runtimeManifest: {
+    readonly gpuModel: string;
+    readonly gpuCount: number;
+    readonly tpSize: number;
+    readonly engineName: string;
+    readonly modelId: string;
+    readonly selectedBackend: string;
+    readonly kvDtype: string;
+    readonly blockSize: number;
+    readonly prefixCachingEnabled: boolean;
+    readonly guardMode: string;
+  } | null;
+  readonly exclusions: readonly string[];
+  readonly claimBoundary: string;
+  readonly checkedAtIso: string;
+}
+
+export type EnterprisePresetId =
+  | 'northstar_commercial'
+  | 'neocloud_shared_gpu'
+  | 'institutional_mnpi_wall'
+  | 'clinical_care_triage';
+
+export interface EnterprisePresetSummary {
+  readonly presetId: EnterprisePresetId;
+  readonly label: string;
+  readonly sector: string;
+  readonly iamUpstream: string;
+  readonly inferenceRuntimeTarget: string;
+  readonly downstreamEgress: string;
+  readonly postIamBlindSpot: string;
+  readonly preEgressFailureWhyDlpIsLate: string;
+  readonly vervainInterventionSummary: string;
+  readonly retrievedDenominator: number;
+  readonly admittedCount: number;
+  readonly withheldCount: number;
+  readonly primaryWithholdReason: string;
+}
+
+export interface EnterpriseArchitectureResponse {
+  readonly limitationNote: string;
+  readonly presets: readonly EnterprisePresetSummary[];
+  readonly engineProfiles: readonly OpenWeightEngineProfile[];
+  readonly inferenceProof: InferenceProofStatusView;
+}
+
 export interface ScopedAttentionProofView {
   limitationBanner: string;
   requestScopeHex: string;
@@ -323,6 +446,9 @@ export interface ScopedAttentionProofView {
   allMaskedControlStatus: 'refused_all_masked_zero_nan';
   invalidBlockControlStatus: 'failed_closed_invalid_block_id';
   computedAtIso: string;
+  kvModes?: readonly KvLifecycleModeEvidence[];
+  onlineTileSteps?: readonly OnlineTileStepEvidence[];
+  engineProfiles?: readonly OpenWeightEngineProfile[];
 }
 
 export interface DemoStateResponse {
@@ -669,6 +795,9 @@ export function detectClientAuthorityOverride(params: {
         message: 'Client-supplied authority or model override query parameter is rejected.',
       };
     }
+  }
+
+  for (const _key of params.searchParams.keys()) {
     return {
       ok: false,
       code: API_ERROR_CODES.UNKNOWN_FIELD,

@@ -26,6 +26,10 @@ export interface ServerConfig {
   readonly geminiTimeoutMs: number;
   readonly geminiMaxRetries: number;
   readonly geminiRetryBaseDelayMs: number;
+  readonly inferenceProofArtifactPath: string | null;
+  readonly evidenceVerifierPythonPath: string | null;
+  readonly inferenceProofTrustRootPath: string | null;
+  readonly inferenceProofRequireSignature: boolean;
 }
 
 const SAFE_MODEL_ID_PATTERN = /^[a-zA-Z0-9._-]{3,80}$/;
@@ -88,5 +92,9 @@ export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCo
     geminiTimeoutMs: parsePositiveInt(env.GEMINI_TIMEOUT_MS, 12000, 500, 60000),
     geminiMaxRetries: parsePositiveInt(env.GEMINI_MAX_RETRIES, 2, 0, 5),
     geminiRetryBaseDelayMs: parsePositiveInt(env.GEMINI_RETRY_BASE_DELAY_MS, 250, 10, 5000),
+    inferenceProofArtifactPath: (env.INFERENCE_PROOF_ARTIFACT_PATH ?? '').trim() || null,
+    evidenceVerifierPythonPath: (env.EVIDENCE_VERIFIER_PYTHONPATH ?? '').trim() || null,
+    inferenceProofTrustRootPath: (env.INFERENCE_PROOF_TRUST_ROOT_PATH ?? '').trim() || null,
+    inferenceProofRequireSignature: env.INFERENCE_PROOF_REQUIRE_SIGNATURE === '1',
   });
 }

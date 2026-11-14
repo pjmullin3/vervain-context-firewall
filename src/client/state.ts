@@ -7,6 +7,7 @@ import type {
   ArmExecutionView,
   ArmId,
   DemoStateResponse,
+  EnterpriseArchitectureResponse,
   LedgerVerificationResult,
   ProvenanceNodeId,
   ScopedAttentionProofView,
@@ -33,6 +34,7 @@ export interface WorkspaceUiState {
   readonly chainVerification: LedgerVerificationResult | null;
   readonly scopedLabOpen: boolean;
   readonly scopedProof: ScopedAttentionProofView | null;
+  readonly enterpriseArchitecture: EnterpriseArchitectureResponse | null;
   readonly runPulseCounter: number;
 }
 
@@ -47,6 +49,7 @@ export const INITIAL_WORKSPACE_UI_STATE: WorkspaceUiState = {
   chainVerification: null,
   scopedLabOpen: false,
   scopedProof: null,
+  enterpriseArchitecture: null,
   runPulseCounter: 0,
 };
 

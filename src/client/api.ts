@@ -9,6 +9,8 @@ import type {
   ArmExecutionView,
   ContextReceipt,
   DemoStateResponse,
+  EnterpriseArchitectureResponse,
+  InferenceProofStatusView,
   LedgerVerificationResult,
   PersonaId,
   SafePersonaView,
@@ -120,4 +122,12 @@ export async function fetchReceiptById(receiptId: string): Promise<{ receipt: Co
 
 export async function fetchScopedAttentionProof(): Promise<ScopedAttentionProofView> {
   return requestJson<ScopedAttentionProofView>('/api/demo/scoped-attention');
+}
+
+export async function fetchInferenceProofStatus(): Promise<InferenceProofStatusView> {
+  return requestJson<InferenceProofStatusView>('/api/inference-proof');
+}
+
+export async function fetchEnterpriseArchitecture(): Promise<EnterpriseArchitectureResponse> {
+  return requestJson<EnterpriseArchitectureResponse>('/api/demo/enterprise-architecture');
 }

@@ -1,46 +1,45 @@
-A single missing tenant filter can place one customer's memory into another customer's AI context. Vervain catches the mismatch before Gemini sees it, preserves the authorized answer, and leaves a causal receipt.
+A single missing tenant filter or un-salted prefix cache can place one customer's memory into another customer's AI context. Vervain catches the mismatch before inference runs, preserves the authorized answer, and leaves a content-free SHA-256 causal receipt.
 
 VERVAIN CONTEXT FIREWALL - IDEA BRIEF
 =====================================
 
-THE POST-IAM CONTEXT GAP
-------------------------
-Identity systems (IAM, OIDC, OAuth) establish who an agent or service principal is when a request starts. The harder failure happens one step later: an application retrieval bug, shared vector store misconfiguration, or session-summary mixup returns records belonging to another tenant or a revoked policy epoch and assembles them into a single LLM prompt. Once foreign bytes enter model context, prompt instructions alone cannot enforce tenant boundaries.
+THE POST-IAM INFERENCE & KV MEMORY GAP
+--------------------------------------
+Enterprise security brackets AI workloads at the outer perimeter while leaving inference itself ungoverned:
+- Upstream IAM (Okta, Microsoft Entra, WorkOS) verifies who a user or workload principal is when a session starts, then steps aside before retrieval assembly or KV-cache reuse.
+- Downstream DSPM and DLP (Cyera, Palo Alto Networks, Zscaler) classify static storage or scan egress text only after the model has already synthesized cross-tenant context in attention weights.
+- Roughly 1 of 3 enterprise inference tokens (~33% across hybrid and self-hosted enterprise AI workloads, excluding consumer chat traffic) now execute on open-weight engines (vLLM, SGLang, Ollama, NVIDIA Dynamo) and multi-tenant neocloud GPU pools without pre-inference context admission or KV-lifecycle governance, alongside hosted frontier APIs (Google Gemini). Once foreign records or mismatched KV blocks enter model attention, prompt instructions cannot enforce tenant separation.
 
-PAIRED GOOGLE GEMINI DEMO MECHANICS
------------------------------------
-Vervain Context Firewall demonstrates pre-inference context admission and pre-release authority verification on a live split-screen request (`fixture.northstar-renewal.v1`):
+THREE RUNTIME PRIMITIVES (AUDIT | ALERT | GOVERN)
+-------------------------------------------------
+1. Govern Before Inference:
+   - Hosted Frontier APIs (Google Gemini): 6 of 6 ordered deterministic checks (schema/null-byte check, frozen SHA-256 version and content digest match, server-owned tenant equality, active policy epoch match, gemini.context classification allowlist, and <= 4096-byte / <= 4-chunk bounds) minting WeakSet-sealed AdmittedChunk[] envelopes (excluding upstream mislabeling at original ingest).
+   - Open-Weight & Neocloud Engines (vLLM, SGLang, Ollama, NVIDIA Dynamo - TypeScript Reference Simulation): Binds server-owned uint32 scope tags (0x00a1de07) into HMAC prefix-cache key salting (cache_salt) and side-array (scope_tag, alloc_generation) block-header masking prior to K/V tile loads and softmax.
+2. Alert & Withhold on Authority Drift:
+   - Nonstreaming ResponseReleaseGate buffers structured JSON replies (<= 8192 UTF-8 bytes, trading higher TTFT for gate completeness; token streaming excluded) and verifies 1 of 1 release idempotency, 5 of 5 live session bindings (sessionId, tenantId, principalId, stateGeneration, policyEpoch), <= 8 deduplicated source citations against envelope.includedSourceIds (unbound_source_citation), and exact absence of 1 of 1 synthetic marker (BEACON_PROJECT_EMBER_742, excluding semantic paraphrase).
+3. Audit Without Data Hoarding:
+   - Canonical sorted-key JSON (RFC 8785 structure) links 6 of 6 stage events per workflow arm into SHA-256 chained receipts (vervain.context-firewall.receipt.v1) answering 5 of 5 CISO governance questions (Who, What, When, How, Why) with 0 raw prompt, document, reply, cookie, or API key bytes retained (live-instance RAM chain; excludes full-store restart rollback without an external checkpoint).
 
-1. Active Session Authority: The server binds `Tenant Alder` (`alder-operator`, policy `alder-context@7`) to an opaque HttpOnly session cookie and rejects any client-supplied tenant, principal, epoch, scope, or model override fields.
-2. Deliberate Retrieval Defect: Both lanes query a controlled broken retriever (`cross_tenant_filter_omission`) that omits its internal tenant predicate and returns two records:
-   - `alder/renewal-playbook-v3` (`Tenant Alder`, `customer-commercial`, epoch `7`).
-   - `beacon/strategy-note-v2` (`Tenant Beacon`, `restricted-strategy`, epoch `11`), containing synthetic identifier `BEACON_PROJECT_EMBER_742` plus an untrusted override instruction.
-3. `Native only` (Synthetic Vulnerable Control): Both chunks (`2 of 2`) enter the outbound Gemini envelope (`cross_tenant_context_transmitted`), illustrating what occurs without an independent context boundary.
-4. `Native + Vervain` (Governed Path):
-   - Pre-Inference Context Gate: Deterministically checks schema completeness, SHA-256 content/version digests, server-owned tenant match, policy epoch, destination classification (`gemini.context`), and byte bounds. Withholds Beacon (`tenant_mismatch`) and admits `1 of 2` chunks (`alder/renewal-playbook-v3`).
-   - Gemini Generation: Only typed `AdmittedChunk[]` records enter the outbound Google Gemini envelope; withheld text never reaches the provider adapter.
-   - Pre-Release Epoch Gate: Buffers the nonstreaming reply, reloads the server session to confirm authority and policy epoch (`7 -> 7`, withholding with `policy_epoch_changed` if revoked mid-flight), performs a secondary exact check for the synthetic planted string, and delivers Alder's authorized renewal guidance.
-   - Causal Graph & Receipt: Renders a 9-node provenance graph and issues a SHA-256 hash-chained JSON receipt recording counts, digests, mediated boundaries, and exclusions with zero raw document or prompt text.
-5. Scoped Attention Reference Lab: Executes server-owned 32-bit scope tags (`0x00a1de07`) over a 4-block paged-KV reference calculation, masking foreign-scope blocks before softmax (`0.000000` post-mask mass) while keeping clean blocks equivalent.
+PAIRED GOOGLE GEMINI DEMO & OPEN-WEIGHT KV WORKBENCH
+----------------------------------------------------
+Vervain Context Firewall mediates 2 of 2 declared boundaries in this Node.js app (retrieval_to_gemini_context_envelope and gemini_response_to_browser_release) on fixture.northstar-renewal.v1:
+1. Server-Owned Authority: Binds Tenant Alder (alder-operator, policy alder-context@7) via HMAC-SHA256 HttpOnly cookies and blocks 25 of 25 client authority/scope/model override keys across 10 of 10 /api/* routes (excluding host OS root admins).
+2. Controlled Retrieval Defect (cross_tenant_filter_omission): Returns 2 of 2 fixture chunks: alder/renewal-playbook-v3 (Tenant Alder, epoch 7) and beacon/strategy-note-v2 (Tenant Beacon, epoch 11, carrying BEACON_PROJECT_EMBER_742 and a hostile document override directive).
+3. Native only (Synthetic Vulnerable Control): Transmits 2 of 2 retrieved chunks into the outbound Gemini envelope (cross_tenant_context_transmitted).
+4. Native + Vervain (Governed Path): Withholds 1 of 2 foreign chunks (tenant_mismatch), admits 1 of 2 authorized chunks into the WeakSet-branded Google Gemini envelope (0 foreign bytes dispatched), rechecks epoch 7 -> 7 at release, renders the isometric 3D memory-cube provenance graph + 6-stage replay scrubber, and appends a content-free SHA-256 receipt.
+5. Open-Weight KV & Scoped Attention Lab: Evaluates 4 of 4 KV lifecycle modes over 4 physical blocks (blockSize = 2, headDim = 4), masking 1 of 4 foreign-scope blocks to 0.000000 of 1.000000 post-softmax mass while preserving 3 of 4 authorized blocks (0 max abs delta on clean [0, 2, 3] twin), backed by 80 of 80 seeded online tiled (m_i, l_i, O_i) FlashAttention-2 recurrence trials within <= 1e-12 and ES Proxy 0-read verification on skipped blocks.
 
-GOOGLE GENAI SDK & CLOUD USAGE
-------------------------------
-- Official `@google/genai` server-side TypeScript SDK (`GoogleGenAI`, `client.models.generateContent` against `gemini-2.5-flash`).
-- Deterministic structured output schema (`Type.OBJECT` requiring `answer` and `sources_used`), `temperature: 0`, `AbortController` timeouts, bounded exponential backoff with jitter on HTTP `429`/`503`, and content-free structured telemetry.
-- Honest runtime posture: `DEMO_MODE=live` never substitutes fake replies on provider failure (preserving pre-inference admission receipts with `provider_unavailable`), while offline `DEMO_MODE=mock` is visibly flagged `MOCK TRANSPORT`.
-- Single-origin Node.js + Vite React build ready for Google Cloud Run and Google AI Studio Build.
+GOOGLE GENAI SDK, CLOUD RUN & INDEPENDENT VERIFIER POSTURE
+----------------------------------------------------------
+- Official server-side @google/genai SDK (GoogleGenAI against gemini-2.5-flash, temperature: 0, structured schema, AbortController timeout, <= 2 retries on HTTP 429/503) packaged as a single-origin Node.js 22 + React container for Google Cloud Run and Google AI Studio Build.
+- Honest transport & GPU status: DEMO_MODE=live never fakes replies on outage (provider_unavailable); DEMO_MODE=mock displays MOCK TRANSPORT; Carbon 3 independent verifier (inference-proof.v1, 73 of 73 reason codes) reports NO GPU RUN RECORDED (0 of 1 live H200 GPU runs recorded in this build prior to GPU GO).
 
-VENTURE-SCALE WEDGE
--------------------
-Identity governs who can call an API; Vervain builds the runtime governance layer after identity across three surfaces:
-1. Context Admission: Deterministic provenance and policy-epoch gating before hosted model envelopes or self-hosted KV caches.
-2. Derived Memory Lineage: Tracking tenant ownership and revocation epochs across summaries, caches, and persisted agent state.
-3. Action & Response Release: Re-verifying live authority before replies or downstream tool effects leave the runtime.
+VENTURE-SCALE WEDGE & 4 HIGH-STAKES SECTORS
+-------------------------------------------
+Enter enterprise AI teams via a 1-week cross-tenant contamination assessment surfacing retrieval and prefix-cache bleed through payload-free receipts, converting directly into inline enforcement across 4 of 4 modeled presets (1 of 5 engine profiles active live on Google Gemini; 4 of 5 open-weight profiles simulated in TypeScript): (1) Multi-tenant SaaS RAG (Northstar), (2) Shared-GPU neocloud pools (vLLM / SGLang / NVIDIA Dynamo), (3) Institutional MNPI deal walls, and (4) On-prem clinical care triage (Ollama / vLLM).
 
-Go-to-market wedge: Enter multi-tenant AI teams through a focused cross-tenant contamination assessment that instruments retrieval-to-inference paths, surfaces cross-tenant precedent and missing predicates via content-free receipts, and converts directly into inline runtime enforcement across hosted model gateways and self-hosted open-weight engines (vLLM, SGLang).
-
-EXPLICIT PROTOTYPE BOUNDARIES & EXCLUSIONS
-------------------------------------------
-- Mediates only two boundaries on this server: `retrieval_to_gemini_context_envelope` and `gemini_response_to_browser_release`.
-- Does NOT inspect or mediate Google Gemini provider-internal KV caches or weights, direct API calls bypassing this server, arbitrary semantic paraphrase beyond exact synthetic planted-string checks, full-store rollback without an external checkpoint, external agent tools, or enterprise OIDC authentication (uses a synthetic server-owned persona fixture).
-- The Scoped Attention Reference Lab runs CPU/TypeScript reference math (`SCOPED_ATTENTION_LIMITATION_LABEL`) and makes no production vLLM attention backend, latency, or hardware isolation claim.
+EXPLICIT PROTOTYPE BOUNDARIES & EXCLUSIONS (7 OF 7 RECEIPT EXCLUSIONS)
+----------------------------------------------------------------------
+- Mediates only 2 of 2 boundaries in this server; excludes Google Gemini internal KV caches/weights, direct unmediated SDK calls, semantic paraphrase beyond exact BEACON_PROJECT_EMBER_742 scan, streaming TTFT, container restart rollback without an external checkpoint, enterprise OIDC login (uses a labeled synthetic persona fixture), external tools/DBs, and GPU HBM tensor zeroization.
+- Self-hosted GPU status: NO GPU RUN RECORDED (0 of 1 H200 runs recorded prior to GPU GO).
+- Limitation notice: Reference scoped-attention proof. Not integrated with Gemini internals or a production vLLM attention backend. No latency or isolation claim.

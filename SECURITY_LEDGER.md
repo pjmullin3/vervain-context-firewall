@@ -12,6 +12,8 @@ Mediated boundaries in this repository:
 5. Nonstreaming response release gate (`src/server/release.ts`)
 6. Content-free SHA-256 event and receipt hash chain (`src/server/ledger.ts`, `src/server/receipts.ts`)
 7. Reference paged-KV Scoped Attention math (`src/server/scoped-attention.ts`)
+8. Open-Weight 4-mode KV lifecycle & HMAC `cache_salt` reference workbench (`src/server/open-weight-workbench.ts`)
+9. Independent Carbon 3 `inference-proof.v1` JCS SHA-256 & zero-echo verifier seam (`src/server/inference-proof.ts`)
 
 Out-of-scope boundaries (explicitly unmediated here):
 - Direct database, network, or provider SDK calls bypassing this server
@@ -112,3 +114,20 @@ Out-of-scope boundaries (explicitly unmediated here):
   - Added `rollbackGeminiCallReservation` on `SessionStore` and `tryReserveGeminiCallsAtomic` in `routes.ts`.
   - Switched `parseStructuredModelJson` in `src/server/gemini.ts` to `parseStrictJson` (rejecting duplicate keys, prototype keys, and decoded null bytes) while deduplicating and bounding `sources_used` (`<= 8` valid source IDs).
 - **Regression tests**: `tests/adversarial/races-evidence-and-web.test.ts` and `tests/adversarial/authority-and-sessions.test.ts` (passing).
+
+---
+
+## Cycle 8: Carbon 3 Proof Sanitizer Nibble-Offset Hex, Non-PASS Manifest Withholding, `-Infinity` Classification, and Query-Order Authority Priority
+
+- **Target surface**: `src/server/inference-proof.ts`, `src/shared/contracts.ts`
+- **Adversarial hypothesis**:
+  1. Prefixing a mixed-case hex-encoded planted canary (`Beacon_Project_Ember_742`) with a single odd hex nibble (`'f' + hexCanary`) shifts byte alignment by 4 bits and bypasses even-only hex decoding in `containsDecodedPlantedValue`.
+  2. Gating `extractRuntimeManifestView` and `extractExclusionsList` on `sanitizerPassed` alone exposes unverified `runtime_manifest` hardware fields (`gpuModel: "NVIDIA H200"`) when an artifact has `verifierVerdict: "FAIL"` (tampered digest / status laundering) or `"NO VERDICT"` (`incomplete` / Python CLI override).
+  3. Because `parseStrictInferenceProofJson` checked `if (ch === '-')` before checking `raw.startsWith('-Infinity', idx)`, `-Infinity` returned `FAIL_PARSE_SYNTAX` instead of `FAIL_CANON_NONFINITE_NUMBER`.
+  4. `evaluateCoreInvariants` permitted `tp_size <= 0` or fractional `tp_size <= gpu_count` and non-hex64 `receipt_chain` digests when `genesis_sha256` and `head_sha256` matched equal arbitrary strings.
+  5. Single-pass query scanning in `detectClientAuthorityOverride` returned `unknown_field` before reaching a trailing authority override parameter (`?foo=bar&tenant_id=beacon`).
+- **Root-cause fix**:
+  - Updated `containsDecodedPlantedValue` to test both `[0, 1]` hex nibble offsets across `PLANTED_LOWER` and `FIXTURE_TEXT` variants.
+  - Gated `runtimeManifest` and `exclusions` exposure strictly on `sanitizerPassed && verifierVerdict === 'PASS'` in both `evaluateInferenceProofArtifactRaw` and the Python CLI merge path of `loadConfiguredInferenceProofStatus`.
+  - Checked `NaN` / `Infinity` / `-Infinity` prior to numeric `-` dispatch in `parseStrictInferenceProofJson`, enforced positive integer `1 <= tp_size <= gpu_count` and `/^[0-9a-f]{64}$/` across all `receipt_chain` digests, and split `detectClientAuthorityOverride` query inspection into a two-pass check prioritizing `authority_override_rejected`.
+- **Regression tests**: `tests/adversarial/enterprise-and-inference-proof.test.ts` (`17 of 17` suites passing, including Cycle 8 regression suite).

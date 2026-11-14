@@ -111,6 +111,10 @@ Edit `.env` locally (keep `.env` untracked; never commit API keys):
 | `MAX_GEMINI_CALLS_PER_SESSION` | `12` | Per-session Gemini call budget guardrail. |
 | `MAX_GEMINI_CALLS_PER_WINDOW` | `60` | Per-instance rolling 10-minute Gemini call budget. |
 | `RATE_LIMIT_MUTATIONS_PER_MINUTE` | `20` | Per-session mutation endpoint rate limit. |
+| `INFERENCE_PROOF_ARTIFACT_PATH` | *(empty)* | Optional path to a Carbon 3 `inference-proof.v1` JSON artifact; when unset (pre-`GPU GO`), `/api/inference-proof` reports `NO GPU RUN RECORDED` (`NOT_CONFIGURED`). |
+| `INFERENCE_PROOF_TRUST_ROOT_PATH` | *(empty)* | Optional path to a Carbon 3 `trust-root.v1` Ed25519 key bundle for signed proof verification. |
+| `INFERENCE_PROOF_PYTHON_VERIFIER_SRC` | *(empty)* | Optional path to Carbon 3's Python `evidence_verifier` `src` directory for dual-verifier confirmation. |
+| `INFERENCE_PROOF_REQUIRE_SIGNATURE` | `0` | Set to `1` to require Ed25519 signature verification against `INFERENCE_PROOF_TRUST_ROOT_PATH`. |
 
 ### 3. Run in development mode
 
@@ -168,7 +172,9 @@ All mutation endpoints require `POST`, `Content-Type: application/json`, same-or
 - `POST /api/demo/run-clean` - Execute governed single-arm request using the tenant-scoped retriever.
 - `POST /api/demo/revoke-during-generation` - Advance session policy epoch mid-request (`7 -> 8`) and withhold response (`policy_epoch_changed`).
 - `GET /api/demo/state` - Current synthetic session, runtime status, frozen query, latest runs, and chain summary.
-- `GET /api/demo/scoped-attention` - Execute server-scoped 4-block reference paged-attention calculation.
+- `GET /api/demo/scoped-attention` - Execute server-scoped 4-block reference paged-attention calculation plus 4-mode open-weight KV lifecycle (`contaminated_block_table`, `prefix_cache_hash_collision` HMAC `cache_salt`, `stale_allocation_generation` ABA check, and Proxy-verified `online_tiled_flash_recurrence`).
+- `GET /api/demo/enterprise-architecture` - Post-IAM / Pre-Egress inference architecture matrix across 4 enterprise deployment presets and 5 engine profiles (`vLLM`, `SGLang`, `Ollama`, `NVIDIA Dynamo`, `Google Gemini`).
+- `GET /api/inference-proof` - Independent Carbon 3 `inference-proof.v1` JCS SHA-256 + zero-echo verifier status (`NO GPU RUN RECORDED` / `NOT_CONFIGURED` prior to `GPU GO`).
 - `GET /api/receipts/:receiptId` - Retrieve content-free receipt owned by the active session.
 - `GET /api/receipts/:receiptId/export` - Download canonical JSON receipt attachment.
 - `GET /api/ledger/verify` - Recompute and verify the in-instance SHA-256 event and receipt hash chain.

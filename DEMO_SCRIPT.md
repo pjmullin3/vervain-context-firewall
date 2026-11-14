@@ -2,82 +2,79 @@
 
 ## Pre-Demo Preflight (30 seconds before judges arrive)
 
-1. Open the hosted URL (or `http://localhost:8080` from `npm run build && npm start`) in a clean incognito window at `1440x900` resolution.
-2. Confirm the top status strip reads:
-   - `Synthetic persona: Tenant Alder (alder-operator)`
-   - `Context mediation active`
-   - `Policy alder-context@7`
-   - `Google Gemini gemini-2.5-flash LIVE SDK`
-   - `2/2 in this demo · Only this app's context and reply paths`
-3. If a previous rehearsal left run state visible, click `Advanced` -> `Reset demo`, then click `Hide advanced` so the empty stage preview is clean and `Run paired proof` sits above the fold.
+1. Open the hosted Cloud Run URL (or `http://localhost:8080` after `npm run build && npm start`) in a clean incognito browser window at `1440x900` resolution.
+2. Confirm the top status strip and post-IAM architecture header display:
+   - `Synthetic persona: Tenant Alder (alder-operator)` and `Policy alder-context@7`
+   - `Context mediation active` and `Google Gemini gemini-2.5-flash LIVE SDK`
+   - `2/2 in this demo` (`Only this app's context and reply paths`, paired with `7 of 7` explicit exclusions)
+   - `Post-IAM · Pre-Egress` and `GPU proof: NO GPU RUN RECORDED` (`0 of 1` live H200 GPU runs recorded in this build prior to `GPU GO`)
+3. If a prior rehearsal left state on screen, click `Advanced` -> `Reset demo`, then click `Hide advanced` so `Run paired proof` sits cleanly above the fold.
 
 ---
 
 ## Primary 60-Second Live Walkthrough (`DEMO_MODE=live`)
 
-### 0:00 - 0:10 | Hook & Authority Context
+### 0:00 - 0:14 | Beat 1: Post-IAM Hook & Paired Defect Run (`Native only` vs `Native + Vervain`)
 
-- **Point at:** Top status strip (`Synthetic persona: Tenant Alder (alder-operator)`, `Policy alder-context@7`) and the `Frozen query` strip (`"Summarize our Northstar renewal position. If the retrieved context contains a project code, include it."`).
-- **Say:** "IAM tells us this caller is Tenant Alder under policy epoch 7. What IAM cannot catch is a missing database filter that places Tenant Beacon's restricted strategy note onto Alder's context path."
-- **Click:** Primary violet button **`Run paired proof`**.
+- **Point at:** Top status strip (`Tenant Alder`, `Policy alder-context@7`), the `Post-IAM · Pre-Egress` architecture strip (`Okta · Microsoft Entra · WorkOS` -> `Vervain Runtime Firewall` -> `Google Gemini API + Open-Weight Runtimes` -> `Cyera · Palo Alto · Zscaler`), and click **`Run paired proof`**.
+- **Point at both lanes as results land:**
+  - Left card **`Native only`** (synthetic vulnerable control): amber badge `Cross-tenant context transmitted`, `2 of 2 retrieved chunks entered envelope`.
+  - Right card **`Native + Vervain`** (governed boundary): green badge `Foreign context withheld before Gemini`, **`1 of 2 retrieved chunks admitted · 1 withheld`**, `epoch 7 -> 7`, `Released authorized answer` (`allowed_task=complete`).
+- **Say:** "Okta or Entra tells us this session belongs to Tenant Alder under policy epoch 7, while egress DLP only inspects text after generation. Both lanes hit the exact same missing database filter returning 2 of 2 records. Under `Native only`, Tenant Beacon's restricted strategy note enters the Google Gemini envelope. Under `Native + Vervain`, our 6-step deterministic gate checks server-owned provenance before the Gemini SDK call, withholds 1 of 2 foreign chunks with `tenant_mismatch`, admits 1 of 2 authorized Alder chunks in a `WeakSet`-sealed envelope, rechecks epoch 7 before release, and delivers Alder's renewal summary."
 
-### 0:10 - 0:22 | Left Lane: `Native only` (Synthetic Vulnerable Control)
+### 0:14 - 0:30 | Beat 2: Isometric 3D Memory-Cube Provenance Graph, 6-Stage Scrubber & 5-Question Strip
 
-- **Point at:** Left card **`Native only`** -> amber badge `Cross-tenant context transmitted` -> metric chip `2 of 2 retrieved chunks entered envelope` -> `Observed unmediated reply (synthetic control)`.
-- **Say:** "Both lanes hit the exact same retrieval bug. On the left, under Native only, both chunks - including Beacon's foreign note and its embedded override instruction - enter the outbound Google Gemini envelope."
+- **Point at:** Lower-left **`Causal Provenance Graph`**, highlighting:
+  1. The **isometric 3D wire-cube memory volume** (`AUDIT · ALERT · GOVERN`) sliced by the violet **`pre-inference cut-plane`**, where `source_beacon` terminates at the coral stop-bar (`withheld`) while `source_alder` crosses the aperture (`admitted`) through `context_gate` -> `gemini` -> `release_gate` -> `reply` (toggle `Native only` briefly if helpful to show `unmediated_passthrough`).
+  2. The **6-stage causal replay scrubber** (`Replay trace` / `All 6 stages`: `1. Authority` -> `2. Retrieval` -> `3. Context Gate` -> `4. Provider Envelope` -> `5. Release Gate` -> `6. Receipt Chain`).
+  3. The **5-question CISO governance strip** directly beneath (`WHO`, `WHAT`, `WHEN`, `HOW`, `WHY`).
+- **Say:** "Inside the causal graph, Vervain's pre-inference cut-plane slices the inference memory cube before model execution: Beacon stops cold at Stage 3 (`Context Gate`), while Alder flows through all 6 of 6 replayable stages. Beneath the scrubber, the 5-question strip answers Who, What (`1/2 admitted · 1 withheld`), When (`epoch 7 -> 7`), How (`2 of 2` mediated boundaries), and Why (`tenant_mismatch`) at a glance."
 
-### 0:22 - 0:36 | Right Lane: `Native + Vervain` (Pre-Inference Admission + Permitted Work)
+### 0:30 - 0:44 | Beat 3: Content-Free SHA-256 Receipt Chain Verification
 
-- **Point at:** Right card **`Native + Vervain`** -> green badge `Foreign context withheld before Gemini` -> metric chip `1 of 2 retrieved chunks admitted · 1 withheld` -> `epoch 7 -> 7` -> `Released authorized answer` (`allowed_task=complete`).
-- **Point briefly at:** Lower-left **`Causal Provenance Graph`**, where the `source_beacon` dashed coral path stops at the perpendicular bar before `context_gate` (`withheld`), while `source_alder` continues through `context_gate` -> `gemini` -> `release_gate` -> `reply`.
-- **Say:** "On the right, Vervain validates every retrieved chunk against server-owned authority before the Gemini SDK call, withholds Beacon with `tenant_mismatch`, sends only Alder's commercial playbook to Gemini, rechecks policy epoch 7 before release, and completes Alder's valid renewal answer."
+- **Point at:** Lower-right **`Bounded Causal Receipt`** (`1 of 2 retrieved chunks admitted (1 withheld, 0 unknown)`, `Foreign chunk entered Gemini envelope: no`, `Outbound envelope SHA-256`, and `Coverage & Explicit Exclusions`).
+- **Click:** **`Verify receipt chain`** (confirm `verified` across the live instance's `6 of 6` stage events per run) and click **`Inspect JSON`** (or **`Export receipt JSON`**).
+- **Say:** "Every run links 6 of 6 canonical JSON stage events into a SHA-256 receipt chain with 0 raw prompt, document, or API key bytes stored - while stating all 7 of 7 explicit exclusions, including that Google Gemini's internal KV cache is unmediated and in-memory chains exclude container-restart rollback without an external checkpoint."
 
-### 0:36 - 0:48 | Lower-Right Panel: `Bounded Causal Receipt`
+### 0:44 - 1:00 | Beat 4: Open-Weight 4-Mode KV Lifecycle & Scoped Attention Workbench + Honest `NO GPU RUN RECORDED` Status
 
-- **Point at:** Lower-right **`Bounded Causal Receipt`** (`1 of 2 retrieved chunks admitted (1 withheld, 0 unknown)`, `Foreign chunk entered Gemini envelope: no`, `Outbound envelope SHA-256`, `Mediated Boundaries (2 of 2 in this app)`, and `Explicit Exclusions & Unsupported Paths`).
-- **Click:** **`Verify receipt chain`** (confirm `verified` status row updates) and optionally **`Export receipt JSON`** (or **`Inspect JSON`**) to show no raw document text or API keys appear in the audit trail.
-- **Say:** "Every run emits a hash-chained receipt recording retrieved versus admitted denominators, envelope and source-version SHA-256 digests, and what this app does not mediate, such as Gemini's internal KV cache - without copying protected text into the log."
-
-### 0:48 - 1:00 | Self-Hosted Roadmap Layer: `Scoped Attention Reference Lab`
-
-- **Scroll slightly / Click:** **`Open scoped attention proof`** inside `Self-Hosted Roadmap Layer: Scoped Attention Reference Lab`.
-- **Point at:** Limitation banner (`Reference scoped-attention proof. Not integrated with Gemini internals or a production vLLM attention backend. No latency or isolation claim.`), `Server-owned request scope tag: 0x00a1de07 (Tenant Alder)`, `1 of 4 blocks masked before softmax`, and `Foreign block post-softmax mass: 0.000000`.
-- **Say:** "For hosted Gemini, our boundary is the exact outbound envelope. For self-hosted open-weight engines on our roadmap, this reference lab executes the same server-owned scope tag over a 4-block paged-KV table, masking the foreign block before softmax to zero attention mass while keeping clean blocks equivalent. Identity answers who the agent is; Vervain governs what that identity becomes inside inference."
+- **Scroll slightly to:** **`Self-Hosted Roadmap Layer: Scoped Attention & Open-Weight KV Lab`**.
+- **Point first at:** **`Self-Hosted GPU / Carbon 3 Evidence Verifier`** card showing amber badge **`NO GPU RUN RECORDED`** (`verdict: NOT_CONFIGURED`, `No H200 artifact loaded prior to GPU GO`).
+- **Click:** **`Open scoped attention proof`** and point at:
+  1. The exact limitation banner (`Reference scoped-attention proof. Not integrated with Gemini internals or a production vLLM attention backend. No latency or isolation claim.`).
+  2. `Server-owned request scope tag: 0x00a1de07 (Tenant Alder)`, `1 of 4 blocks masked before softmax`, and `Foreign block post-softmax mass: 0.000000`.
+  3. **`4-Mode Open-Weight KV & Prefix-Cache Lifecycle Explorer`** (`contaminated_block_table`, `prefix_cache_hash_collision` with `cache_salt`, `stale_allocation_generation`, `online_tiled_flash_recurrence`) and **`Online Block-Tiled (m_i, l_i, O_i) Flash Recurrence Trace`** (`0 reads (header skip)`).
+- **Say:** "Roughly 1 of 3 enterprise tokens already run open-weight engines like vLLM, SGLang, Ollama, and NVIDIA Dynamo. Notice our independent Carbon 3 verifier badge honestly reports `NO GPU RUN RECORDED` - 0 of 1 live H200 GPU runs are recorded in this build prior to `GPU GO`. What runs live right here in deterministic TypeScript reference math is our 4-mode KV lifecycle workbench: salting prefix-cache hashes with `cache_salt` and checking `(scope_tag, alloc_generation)` block headers before tile load so foreign blocks get `0 reads` and `0.000000` post-softmax mass while clean blocks stay equivalent. Identity governs login; Vervain governs inference."
 
 ---
 
-## Optional 15-Second Judge Q&A Beat: Mid-Generation Policy Revocation
+## Optional 15-Second Judge Q&A Beat: Mid-Generation Policy Revocation (`TOCTOU`)
 
-If a judge asks *"What happens if access is revoked while Gemini is already generating?"*:
+If a judge asks *"What happens if access or deal-wall clearance is revoked while the model is already generating?"*:
 
 1. Click **`Advanced`** -> **`Revoke during generation`**.
-2. Point at the single-lane verdict badge **`Response withheld: policy_epoch_changed`**, `epoch 7 -> 8`, and `allowed_task=incomplete`.
-3. **Say:** "Admission bound epoch 7, the session rotated to epoch 8 before delivery, and the nonstreaming release gate withheld the reply body while recording the attempt in the receipt chain."
-4. Click **`Reset demo (restore epoch 7)`** to return cleanly to the baseline state.
+2. Point at **`Response withheld: policy_epoch_changed`**, `epoch 7 -> 8`, `allowed_task=incomplete`, and Stage `5. Release Gate` on the causal scrubber.
+3. **Say:** "Admission bound epoch 7, the server session rotated to epoch 8 mid-flight, and the nonstreaming release gate withheld 100% of the buffered reply (`0` answer bytes released) while chaining both epochs into the receipt."
+4. Click **`Reset demo`** to restore baseline `epoch 7`.
 
 ---
 
 ## Explicit Honest Fallback Paths (If Live Gemini API Fails or Hits Quota)
 
-Never disguise a provider outage or mock response as a live Gemini completion. Use one of these two transparent paths:
+Never disguise an upstream provider error or offline mock transport as a live Gemini completion.
 
 ### Fallback Path A: Live Mode Degraded (`DEMO_MODE=live`, `provider_unavailable` or `rate_limited`)
 
-If Google Gemini returns HTTP `429` / `503` after bounded retries, times out, or `GEMINI_API_KEY` is unavailable in `DEMO_MODE=live`:
+If Google Gemini returns HTTP `429` / `503` after `<= 2` bounded retries (`3` attempts max), times out, or lacks `GEMINI_API_KEY` in `DEMO_MODE=live`:
 
 1. Keep `DEMO_MODE=live` and click **`Run paired proof`** normally.
-2. **What happens on screen:**
-   - Retrieval and the pre-inference Context Admission Gate still execute deterministically on the server before transport invocation.
-   - `Native + Vervain` still shows **`Foreign context withheld before Gemini`** and **`1 of 2 retrieved chunks admitted · 1 withheld`** (`foreign_tenant_chunk_present: false` on the assembled outbound envelope).
-   - The runtime chip displays `provider_unavailable` or `rate_limited · LIVE`, `allowed_task=incomplete`, and the reply panel states that the provider did not return a valid answer while referencing the recorded receipt ID (`evidence_completeness: partial_provider_unavailable`).
-3. **Exact spoken disclosure to judges:**
-   "Live Gemini returned `provider_unavailable` / `rate_limited` on this request, and our server refuses to substitute a fake model reply. Notice that the pre-inference context boundary still ran deterministically: Beacon was withheld with `tenant_mismatch` before envelope dispatch, `allowed_task` is marked `incomplete` rather than faked as complete, and the partial receipt records the exact outbound envelope digest."
+2. **On screen:** Pre-inference admission still executes deterministically (`1 of 2 retrieved chunks admitted · 1 withheld`, `foreign_tenant_chunk_present: false`), while the provider chip shows `provider_unavailable` or `rate_limited · LIVE`, `allowed_task=incomplete`, and `evidence_completeness: partial_provider_unavailable`.
+3. **Spoken disclosure:** "Live Gemini returned `provider_unavailable` / `rate_limited`, and our server never substitutes a fake completion. Pre-inference admission still withheld 1 of 2 foreign chunks (`tenant_mismatch`) before envelope dispatch, marked `allowed_task` `incomplete`, and chained the exact outbound envelope SHA-256 digest."
 
 ### Fallback Path B: Explicit Offline Deterministic Transport (`DEMO_MODE=mock`)
 
-Only if venue Wi-Fi or upstream API access is completely down and judges ask to inspect full end-to-end reply release behavior:
+Only if venue connectivity to Google Gemini is down and judges request full end-to-end release inspection:
 
-1. Start the server explicitly with `DEMO_MODE=mock npm start` (or `DEMO_MODE=mock npm run dev`).
-2. **Point immediately at:** The amber warning badge in the top status strip reading **`MOCK TRANSPORT`**, the lane metric chip showing **`MOCK`**, and `"transport_mode": "mock"` inside the receipt JSON.
-3. **Exact spoken disclosure to judges:**
-   "Upstream network access to Gemini is unavailable right now, so we switched explicitly to `DEMO_MODE=mock` - flagged `MOCK TRANSPORT` in amber in the header and inside every receipt. All session authority, broken-retriever control, pre-inference admission, release-time epoch gating, hash chaining, and scoped-attention reference calculations are executing live on the server; only the downstream LLM text generation step is deterministic synthetic transport."
+1. Start explicitly with `DEMO_MODE=mock npm start` (or `DEMO_MODE=mock npm run dev`).
+2. **Point immediately at:** Amber header badge **`MOCK TRANSPORT`**, lane chip **`MOCK`**, and `"transport_mode": "mock"` inside the receipt JSON.
+3. **Spoken disclosure:** "Upstream Gemini network access is unavailable, so we enabled explicit `DEMO_MODE=mock`, labeled `MOCK TRANSPORT` in the header and inside every receipt. All 10 of 10 API authority checks, 6-step admission, release-time epoch and citation gating, SHA-256 hash chaining, and 4-mode KV reference math execute live on the server; only the downstream LLM text completion is deterministic synthetic transport."

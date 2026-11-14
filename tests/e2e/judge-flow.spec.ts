@@ -66,7 +66,16 @@ test.describe('Vervain Context Firewall: Clean-Browser Judge Path', () => {
       'BEACON_PROJECT_EMBER_742',
     );
 
-    // 4. Keyboard-accessible Provenance Graph node selection
+    // 4. Keyboard-accessible Provenance Graph node selection + Isometric Cube Replay & 5-Question Strip
+    await expect(page.getByTestId('causal-replay-scrubber')).toBeVisible();
+    await expect(page.getByTestId('governance-five-questions')).toBeVisible();
+    await expect(page.getByTestId('governance-five-questions')).toContainText('1/2 admitted');
+
+    // Step through causal replay scrubber stage 3 (Context Gate) and restore All stages
+    await page.getByTestId('replay-stage-3').click();
+    await expect(page.getByTestId('node-inspector')).toContainText('Context Gate');
+    await page.getByTestId('replay-stage-all').click();
+
     const beaconNode = page.getByTestId('graph-node-source_beacon');
     await beaconNode.focus();
     await page.keyboard.press('Enter');
@@ -98,18 +107,35 @@ test.describe('Vervain Context Firewall: Clean-Browser Judge Path', () => {
     const exportedText = await exportResp.text();
     expect(exportedText).not.toContain('BEACON_PROJECT_EMBER_742');
 
-    // 6. Open Scoped Attention Proof Lab
+    // 5b. Post-IAM / Pre-Egress Enterprise & Neocloud Architecture Strip
+    const archStrip = page.getByTestId('enterprise-architecture-strip');
+    await expect(archStrip).toBeVisible();
+    await expect(archStrip).toContainText('NO GPU RUN RECORDED');
+    await page.getByTestId('preset-tab-neocloud_shared_gpu').click();
+    await expect(page.getByTestId('preset-detail-card')).toContainText('vLLM');
+    await expect(page.getByTestId('engine-profile-matrix')).toContainText('SGLang');
+    await expect(page.getByTestId('engine-profile-matrix')).toContainText('NVIDIA Dynamo');
+
+    // 6. Open Scoped Attention & Open-Weight KV Lifecycle Workbench
     await page.getByTestId('btn-open-scoped-attention').click();
     await expect(page.getByTestId('scoped-attention-panel')).toBeVisible();
     await expect(page.getByTestId('scoped-limitation-banner')).toHaveText(
       SCOPED_ATTENTION_LIMITATION_LABEL,
     );
+    await expect(page.getByTestId('inference-proof-badge')).toHaveText('NO GPU RUN RECORDED');
     await expect(page.getByTestId('scoped-request-tag')).toContainText('0x00a1de07');
     await expect(page.getByTestId('scoped-mismatch-count')).toContainText(
       '1 of 4 blocks masked before softmax',
     );
     await expect(page.getByTestId('scoped-foreign-mass')).toContainText('0.000000');
     await expect(page.getByTestId('scoped-clean-delta')).toContainText('0.00e+0');
+
+    // Switch KV lifecycle modes and verify online tile zero-read skip table
+    await expect(page.getByTestId('kv-lifecycle-explorer')).toBeVisible();
+    await page.getByTestId('kv-mode-tab-prefix_cache_hash_collision').click();
+    await expect(page.getByTestId('kv-mode-detail')).toContainText('0.000000');
+    await page.getByTestId('kv-mode-tab-online_tiled_flash_recurrence').click();
+    await expect(page.getByTestId('online-tile-table')).toContainText('0 reads');
   });
 
   test('enforces epoch-revocation withholding, clean reset, multi-session isolation, reduced motion, and responsive layouts', async ({

@@ -11,6 +11,7 @@ import {
   ClientApiError,
   createOrSwitchPersonaSession,
   fetchDemoState,
+  fetchEnterpriseArchitecture,
   fetchScopedAttentionProof,
   resetDemoSessionRequest,
   runCleanDemoRequest,
@@ -18,6 +19,7 @@ import {
   runRevokeDuringGenerationRequest,
   verifyLedgerChainRequest,
 } from './api.js';
+import { EnterpriseArchitectureStrip } from './components/EnterpriseArchitectureStrip.js';
 import { EvidenceDrawer } from './components/EvidenceDrawer.js';
 import { PairedLanes } from './components/PairedLanes.js';
 import { ProvenanceGraph } from './components/ProvenanceGraph.js';
@@ -37,21 +39,27 @@ export function App() {
     setUi((prev) => ({ ...prev, loadingInitial: true, errorBanner: null }));
     try {
       const state = await fetchDemoState();
+      const arch = await fetchEnterpriseArchitecture().catch(() => null);
       setUi((prev) => ({
         ...prev,
         loadingInitial: false,
         demoState: state,
+        enterpriseArchitecture: arch,
         chainVerification: state.ledgerSummary,
       }));
     } catch (err: unknown) {
       if (err instanceof ClientApiError && err.status === 401) {
         try {
           await createOrSwitchPersonaSession('alder');
-          const freshState = await fetchDemoState();
+          const [freshState, arch] = await Promise.all([
+            fetchDemoState(),
+            fetchEnterpriseArchitecture().catch(() => null),
+          ]);
           setUi((prev) => ({
             ...prev,
             loadingInitial: false,
             demoState: freshState,
+            enterpriseArchitecture: arch,
             chainVerification: freshState.ledgerSummary,
           }));
           return;
@@ -392,10 +400,19 @@ export function App() {
           </div>
         )}
 
+        {ui.enterpriseArchitecture && (
+          <EnterpriseArchitectureStrip
+            presets={ui.enterpriseArchitecture.presets}
+            engineProfiles={ui.enterpriseArchitecture.engineProfiles}
+            inferenceProof={ui.enterpriseArchitecture.inferenceProof}
+          />
+        )}
+
         <ScopedAttentionLab
           isOpen={ui.scopedLabOpen}
           loading={ui.activeAction === 'loading_scoped_lab'}
           proof={ui.scopedProof}
+          inferenceProof={ui.enterpriseArchitecture?.inferenceProof ?? null}
           onToggle={() => void handleToggleScopedLab()}
         />
       </main>
