@@ -13,7 +13,7 @@ test.describe('Vervain Context Firewall: Clean-Browser Judge Path', () => {
   test('completes the 60-second paired proof, graph inspection, receipt export, chain check, and scoped attention lab above the fold on 1440x900', async ({
     page,
   }) => {
-    await page.goto('/');
+    await page.goto('/#evidence');
 
     // 1. Top strip & synthetic fixture session bootstrap
     await expect(page.getByTestId('status-strip')).toBeVisible();
@@ -158,8 +158,8 @@ test.describe('Vervain Context Firewall: Clean-Browser Judge Path', () => {
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
 
-    await pageA.goto('/');
-    await pageB.goto('/');
+    await pageA.goto('/#evidence');
+    await pageB.goto('/#evidence');
 
     // Context A runs Advanced -> Revoke during generation
     await pageA.getByTestId('btn-toggle-advanced').click();
