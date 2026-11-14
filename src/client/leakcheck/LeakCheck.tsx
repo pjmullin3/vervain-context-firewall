@@ -12,6 +12,7 @@ import { createOrSwitchPersonaSession, fetchDemoState, runPairedProofRequest, ve
 import { BrandLogo } from '../datamap/BrandLogo.jsx';
 import { DataMap, type DataMapSource } from '../datamap/DataMap.jsx';
 import { snapshotAt, type Observation } from '../datamap/fixtures.mjs';
+import { modelLabels } from '../../shared/provider-labels.js';
 import './leakcheck.css';
 
 type Paired = NonNullable<DemoStateResponse['latestPairedRun']>;
@@ -29,7 +30,7 @@ const ASKING_ID = 'alder';
 const ACTORS: Record<string, string> = {
   assistant: 'Acme Co. AI assistant',
   search: 'Search tool',
-  gemini: 'Gemini 4 Carbon (model)',
+  gemini: modelLabels(null, null).node,
 };
 
 const ACME_FILE = '/Acme Co./renewal-playbook.md';
@@ -97,7 +98,7 @@ export function armObservations(arm: ArmExecutionView, t0: number): Observation[
 }
 
 /** Card labels for one arm: the Pied Piper note says BLOCKED or LEAKED once that step plays; a rejected answer says so. */
-export function armTags(arm: ArmExecutionView, observations: Observation[]): CardTag[] {
+export function armTags(arm: ArmExecutionView, observations: Observation[], modelShort = 'Gemini'): CardTag[] {
   const leaked = arm.foreignChunkEnteredEnvelope;
   const at = (agent: string, path: string) => observations.find((o) => o.agent === agent && o.path === path && o.status !== PENDING)?.at;
   const tags: CardTag[] = [];
@@ -105,7 +106,7 @@ export function armTags(arm: ArmExecutionView, observations: Observation[]): Car
   if (blockedOrLeakedAt !== undefined) {
     tags.push(
       leaked
-        ? { path: PIED_PIPER_FILE, from: blockedOrLeakedAt, text: 'LEAKED into Gemini', tone: 'leaked' }
+        ? { path: PIED_PIPER_FILE, from: blockedOrLeakedAt, text: `LEAKED into ${modelShort}`, tone: 'leaked' }
         : { path: PIED_PIPER_FILE, from: blockedOrLeakedAt, text: 'BLOCKED by Vervain', tone: 'blocked' },
     );
   }
@@ -133,7 +134,7 @@ function idleObservations(t0: number): Observation[] {
 }
 
 /** A DataMap source with the same {label, clock, interval, poll} contract as the stock harness. Reads observations from a ref so the map keeps its layout while the result streams in. */
-function replaySource(observations: { current: Observation[] }, t0: number): DataMapSource {
+function replaySource(observations: { current: Observation[] }, t0: number, modelNode: string): DataMapSource {
   return {
     label: 'Acme Co.',
     clock: () => Date.now(),
@@ -141,7 +142,8 @@ function replaySource(observations: { current: Observation[] }, t0: number): Dat
     async poll() {
       const snap = snapshotAt({ observations: observations.current, t0, span: 12000, title: 'Leak check' }, Date.now());
       for (const session of snap.sessions) {
-        const name = ACTORS[String(session.id)] ?? String(session.id);
+        const id = String(session.id);
+        const name = id === 'gemini' ? modelNode : (ACTORS[id] ?? id);
         session.name = name;
         session.model = name;
       }
@@ -186,7 +188,11 @@ export function LeakCheck() {
     );
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [startedAt, paired]);
-  const source = useMemo(() => replaySource(observations, startedAt), [startedAt]);
+  const mode = arm?.providerRuntime.mode ?? demo?.runtime.mode ?? null;
+  const isLive = mode === 'live';
+  const labels = modelLabels(demo?.runtime ?? null, mode, arm?.providerRuntime.model);
+  const model = arm?.providerRuntime.model ?? demo?.runtime.configuredModel ?? labels.short;
+  const source = useMemo(() => replaySource(observations, startedAt, labels.node), [startedAt, labels.node]);
   const cardTag = useCallback((node: { kind: string; meta?: Record<string, unknown> }) => {
     if (node.kind !== 'file') return null;
     const now = Date.now();
@@ -194,9 +200,6 @@ export function LeakCheck() {
     return tag ? { text: tag.text, tone: tag.tone } : null;
   }, []);
 
-  const mode = arm?.providerRuntime.mode ?? demo?.runtime.mode ?? null;
-  const isLive = mode === 'live';
-  const model = arm?.providerRuntime.model ?? demo?.runtime.configuredModel ?? 'Gemini 4 Carbon';
 
   async function run() {
     setRunning(true);
@@ -211,7 +214,7 @@ export function LeakCheck() {
       const runArm = armOf(result.pairedRun, vervainOn);
       const t1 = Math.max(Date.now() + STEP, resultStart(t0));
       observations.current = [...requestObservations(t0), ...resultObservations(runArm, t1)];
-      tags.current = armTags(runArm, observations.current);
+      tags.current = armTags(runArm, observations.current, labels.short);
       setPaired(result.pairedRun);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The run failed.');
@@ -226,7 +229,7 @@ export function LeakCheck() {
     const t0 = Date.now();
     const replayArm = armOf(paired, on);
     observations.current = armObservations(replayArm, t0);
-    tags.current = armTags(replayArm, observations.current);
+    tags.current = armTags(replayArm, observations.current, labels.short);
     setStartedAt(t0);
   }
 
@@ -241,7 +244,7 @@ export function LeakCheck() {
       ? "BLOCKED. Pied Piper's private note never reached the AI. Acme still got its answer."
       : "LEAKED. Pied Piper's private note went straight into the AI."
     : running
-      ? "Acme asks. The search bug grabs Pied Piper's private note too. Asking Gemini..."
+      ? `Acme asks. The search bug grabs Pied Piper's private note too. Asking ${labels.short}...`
       : "Acme Co. and Pied Piper share one AI assistant. Vervain controls what the agent reads before it reasons.";
 
   return (
@@ -252,7 +255,7 @@ export function LeakCheck() {
           <span className="lc-name">Vervain</span>
         </div>
         <span className={`lc-chip ${isLive ? 'is-live' : 'is-mock'}`} title={`Model: ${model}`}>
-          Gemini 4 Carbon · {mode === null ? '...' : isLive ? 'LIVE' : 'MOCK'}
+          {labels.chip}
         </span>
         <div className="lc-actions">
           <button
@@ -266,7 +269,7 @@ export function LeakCheck() {
             Vervain {vervainOn ? 'ON' : 'OFF'}
           </button>
           <button type="button" className="lc-run" onClick={run} disabled={running}>
-            {running ? 'Asking Gemini...' : "Run Acme's request"}
+            {running ? `Asking ${labels.short}...` : "Run Acme's request"}
           </button>
           <button type="button" className="lc-ghost" onClick={() => replay(vervainOn)} disabled={!paired || running}>
             Replay

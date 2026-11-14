@@ -34,7 +34,28 @@ export interface OpenAICompatibleSettings {
   readonly baseUrl: string;
   /** Served model id; must equal the envelope model so receipts name the model that answered. */
   readonly model: string;
+  /** Sent as `Authorization: Bearer <key>` when set (OPENAI_COMPAT_API_KEY, for `vllm serve --api-key`). */
   readonly apiKey: string | null;
+  /**
+   * Sends the system instruction as a prefix of the single user message instead of a `system`
+   * message, for chat templates that reject the system role (Gemma). OPENAI_COMPAT_MERGE_SYSTEM
+   * is `1` or `0`; when unset it is on for model ids containing "gemma".
+   */
+  readonly mergeSystemIntoUser: boolean;
+}
+
+/** Builds the chat messages for one envelope; the system text is never dropped. */
+export function buildChatMessages(
+  envelope: Pick<GeminiOutboundEnvelope, 'systemInstruction' | 'userContent'>,
+  mergeSystemIntoUser: boolean,
+): { role: 'system' | 'user'; content: string }[] {
+  if (mergeSystemIntoUser) {
+    return [{ role: 'user', content: `${envelope.systemInstruction}\n\n${envelope.userContent}` }];
+  }
+  return [
+    { role: 'system', content: envelope.systemInstruction },
+    { role: 'user', content: envelope.userContent },
+  ];
 }
 
 /**
@@ -62,10 +83,14 @@ export function loadOpenAICompatibleSettings(
     throw new Error('PROVIDER=openai_compatible requires OPENAI_COMPAT_MODEL matching [a-zA-Z0-9._-]{3,80}.');
   }
   const apiKey = (env.OPENAI_COMPAT_API_KEY ?? '').trim();
+  const rawMerge = (env.OPENAI_COMPAT_MERGE_SYSTEM ?? '').trim();
+  const mergeSystemIntoUser =
+    rawMerge === '1' ? true : rawMerge === '0' ? false : /gemma/i.test(model);
   return Object.freeze({
     baseUrl: rawBase.replace(/\/+$/, ''),
     model,
     apiKey: apiKey.length > 0 ? apiKey : null,
+    mergeSystemIntoUser,
   });
 }
 
@@ -112,10 +137,7 @@ export class OpenAICompatibleChatTransport implements GeminiTransport {
         signal: controller.signal,
         body: JSON.stringify({
           model: envelope.model,
-          messages: [
-            { role: 'system', content: envelope.systemInstruction },
-            { role: 'user', content: envelope.userContent },
-          ],
+          messages: buildChatMessages(envelope, this.settings.mergeSystemIntoUser),
           temperature: envelope.temperature,
           max_tokens: envelope.maxOutputTokens,
           n: 1,

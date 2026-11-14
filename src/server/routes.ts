@@ -209,13 +209,19 @@ function verifySameOriginPost(req: IncomingMessage): boolean {
 }
 
 function buildRuntimeStatusView(ctx: ApiRouterContext): RuntimeStatusView {
+  // A self-hosted endpoint is configured once its base URL and served model id validated at
+  // startup (the bearer key is optional there).
   const liveConfigured =
-    ctx.transport instanceof OfficialGoogleGenAITransport
-      ? ctx.transport.isConfigured()
-      : ctx.config.geminiApiKey !== null;
+    ctx.config.openAICompat !== null
+      ? true
+      : ctx.transport instanceof OfficialGoogleGenAITransport
+        ? ctx.transport.isConfigured()
+        : ctx.config.geminiApiKey !== null;
 
   return {
-    provider: 'Google Gemini',
+    provider: ctx.config.providerName,
+    providerKind: ctx.config.providerKind,
+    providerHostLabel: ctx.config.providerHostLabel,
     configuredModel: ctx.config.geminiModel,
     mode: ctx.transport.mode,
     liveKeyConfigured: liveConfigured,
@@ -395,6 +401,8 @@ export async function handleApiOrProbeRequest(
     sendJson(res, adapterReady ? 200 : 503, {
       status: adapterReady ? 'ready' : 'not_ready',
       context_gate: 'ready',
+      provider: runtime.providerKind,
+      model: runtime.configuredModel,
       gemini_adapter_mode: runtime.mode,
       gemini_key_configured: runtime.liveKeyConfigured,
       demo_workflow_ready: adapterReady,

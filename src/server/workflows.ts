@@ -100,6 +100,7 @@ function buildProvenanceGraph(params: {
   envelope: GeminiOutboundEnvelope | null;
   providerOutcome: ProviderOutcome;
   providerMode: 'live' | 'mock';
+  providerName: string;
   modelId: string;
   releaseDecision: ReleaseDecision | 'unmediated_control_release';
   releaseReason: ReleaseReasonCode | 'unmediated_control_release';
@@ -117,6 +118,7 @@ function buildProvenanceGraph(params: {
     envelope,
     providerOutcome,
     providerMode,
+    providerName,
     modelId,
     releaseDecision,
     releaseReason,
@@ -235,7 +237,7 @@ function buildProvenanceGraph(params: {
     },
     {
       id: 'gemini',
-      label: `Google Gemini (${modelId})`,
+      label: `${providerName} (${modelId})`,
       category: 'provider',
       stateText:
         envelope === null
@@ -602,6 +604,7 @@ async function executeNativeOnlyControlArm(
     envelope,
     providerOutcome: geminiResult.outcome,
     providerMode: deps.transport.mode,
+    providerName: deps.config.providerName,
     modelId: deps.config.geminiModel,
     releaseDecision: 'unmediated_control_release',
     releaseReason: 'unmediated_control_release',
@@ -644,7 +647,7 @@ async function executeNativeOnlyControlArm(
     policyEpochAtAdmission: authorityAtStart.policyEpoch,
     policyEpochAtRelease: authorityAtStart.policyEpoch,
     providerRuntime: {
-      provider: 'Google Gemini',
+      provider: deps.config.providerName,
       model: deps.config.geminiModel,
       mode: deps.transport.mode,
       callAttempted: true,
@@ -943,6 +946,7 @@ export async function executeVervainGovernedArm(params: {
     envelope,
     providerOutcome,
     providerMode: deps.transport.mode,
+    providerName: deps.config.providerName,
     modelId: deps.config.geminiModel,
     releaseDecision,
     releaseReason,
@@ -977,7 +981,7 @@ export async function executeVervainGovernedArm(params: {
     policyEpochAtAdmission: authorityAtStart.policyEpoch,
     policyEpochAtRelease,
     providerRuntime: {
-      provider: 'Google Gemini',
+      provider: deps.config.providerName,
       model: deps.config.geminiModel,
       mode: deps.transport.mode,
       callAttempted: providerCallAttempted,

@@ -4,13 +4,24 @@
  */
 
 import crypto from 'node:crypto';
-import type { RuntimeMode } from '../shared/contracts.js';
+import type { ProviderKind, ProviderName, RuntimeMode } from '../shared/contracts.js';
+import { loadOpenAICompatibleSettings, type OpenAICompatibleSettings } from './openai-compatible.js';
 
 export interface ServerConfig {
   readonly nodeEnv: 'development' | 'test' | 'production';
   readonly port: number;
   readonly geminiApiKey: string | null;
+  /**
+   * Model id named in every envelope and receipt. With PROVIDER=openai_compatible it is the
+   * served model id (OPENAI_COMPAT_MODEL); otherwise the Gemini model.
+   */
   readonly geminiModel: string;
+  readonly providerKind: ProviderKind;
+  readonly providerName: ProviderName;
+  /** Where the self-hosted model runs, shown in the UI (OPENAI_COMPAT_HOST_LABEL); null for Gemini. */
+  readonly providerHostLabel: string | null;
+  /** Present only when PROVIDER=openai_compatible selected the self-hosted transport. */
+  readonly openAICompat: OpenAICompatibleSettings | null;
   readonly demoMode: RuntimeMode;
   readonly allowLiveGeminiInTests: boolean;
   readonly sessionSecret: string;
@@ -33,6 +44,8 @@ export interface ServerConfig {
 }
 
 const SAFE_MODEL_ID_PATTERN = /^[a-zA-Z0-9._-]{3,80}$/;
+const SAFE_HOST_LABEL_PATTERN = /^[a-zA-Z0-9 ._-]{1,40}$/;
+const DEFAULT_HOST_LABEL = 'our H200';
 
 const EPHEMERAL_DEV_SECRET = crypto.randomBytes(32).toString('hex');
 
@@ -59,13 +72,26 @@ export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCo
   const trimmedKey = (env.GEMINI_API_KEY ?? '').trim();
   const geminiApiKey = trimmedKey.length > 0 ? trimmedKey : null;
 
+  // Throws on PROVIDER=openai_compatible with a missing base URL or unsafe model id.
+  const openAICompat = loadOpenAICompatibleSettings(env);
+
   const candidateModel = (env.GEMINI_MODEL ?? 'gemini-2.5-flash').trim();
-  const geminiModel = SAFE_MODEL_ID_PATTERN.test(candidateModel)
-    ? candidateModel
-    : 'gemini-2.5-flash';
+  const geminiModel = openAICompat
+    ? openAICompat.model
+    : SAFE_MODEL_ID_PATTERN.test(candidateModel)
+      ? candidateModel
+      : 'gemini-2.5-flash';
+
+  const rawHostLabel = (env.OPENAI_COMPAT_HOST_LABEL ?? '').trim();
+  const providerHostLabel = openAICompat
+    ? SAFE_HOST_LABEL_PATTERN.test(rawHostLabel)
+      ? rawHostLabel
+      : DEFAULT_HOST_LABEL
+    : null;
 
   const rawDemoMode = (env.DEMO_MODE ?? 'live').trim().toLowerCase();
-  const demoMode: RuntimeMode = rawDemoMode === 'mock' ? 'mock' : 'live';
+  // A self-hosted endpoint is always a live call; mock mode applies to the Gemini path only.
+  const demoMode: RuntimeMode = openAICompat ? 'live' : rawDemoMode === 'mock' ? 'mock' : 'live';
 
   const allowLiveGeminiInTests = env.ALLOW_LIVE_GEMINI === '1';
 
@@ -82,6 +108,10 @@ export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCo
     port,
     geminiApiKey,
     geminiModel,
+    providerKind: openAICompat ? 'openai_compatible' : 'gemini',
+    providerName: openAICompat ? 'Self-hosted open model' : 'Google Gemini',
+    providerHostLabel,
+    openAICompat,
     demoMode,
     allowLiveGeminiInTests,
     sessionSecret,

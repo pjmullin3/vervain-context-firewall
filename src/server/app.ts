@@ -15,6 +15,7 @@ import {
   type GeminiTransport,
 } from './gemini.js';
 import { AuditLedger } from './ledger.js';
+import { OpenAICompatibleChatTransport } from './openai-compatible.js';
 import { SafeStructuredLogger } from './redaction.js';
 import { ResponseReleaseGate } from './release.js';
 import {
@@ -52,9 +53,11 @@ export function createAppInstance(options?: {
   const config = options?.config ?? loadServerConfig();
   const transport: GeminiTransport =
     options?.transport ??
-    (config.demoMode === 'mock'
-      ? new DeterministicMockGeminiTransport()
-      : new OfficialGoogleGenAITransport(config.geminiApiKey));
+    (config.openAICompat
+      ? new OpenAICompatibleChatTransport(config.openAICompat)
+      : config.demoMode === 'mock'
+        ? new DeterministicMockGeminiTransport()
+        : new OfficialGoogleGenAITransport(config.geminiApiKey));
 
   const sessionStore = new SessionStore({
     secret: config.sessionSecret,

@@ -37,6 +37,11 @@ export type ArmId = (typeof ARM_IDS)[number];
 export const RUNTIME_MODES = ['live', 'mock'] as const;
 export type RuntimeMode = (typeof RUNTIME_MODES)[number];
 
+/** Which model transport the server selected at startup (Gemini unless PROVIDER=openai_compatible). */
+export type ProviderKind = 'gemini' | 'openai_compatible';
+/** Display name of the provider behind the active transport. */
+export type ProviderName = 'Google Gemini' | 'Self-hosted open model';
+
 export interface SafePersonaView {
   persona: PersonaId;
   tenantLabel: string;
@@ -49,7 +54,10 @@ export interface SafePersonaView {
 }
 
 export interface RuntimeStatusView {
-  provider: 'Google Gemini';
+  provider: ProviderName;
+  providerKind: ProviderKind;
+  /** Where a self-hosted model runs (for example "our H200"); null for Google Gemini. */
+  providerHostLabel: string | null;
   configuredModel: string;
   mode: RuntimeMode;
   liveKeyConfigured: boolean;
@@ -175,7 +183,7 @@ export interface ArmExecutionView {
   policyEpochAtAdmission: number;
   policyEpochAtRelease: number;
   providerRuntime: {
-    provider: 'Google Gemini';
+    provider: ProviderName;
     model: string;
     mode: RuntimeMode;
     callAttempted: boolean;
