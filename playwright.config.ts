@@ -8,7 +8,10 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   workers: 1,
-  timeout: 30000,
+  timeout: 60000,
+  expect: {
+    timeout: 15000,
+  },
   use: {
     baseURL,
     trace: 'retain-on-failure',

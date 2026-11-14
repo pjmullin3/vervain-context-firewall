@@ -1,0 +1,24 @@
+# Git metadata and local OS state
+.git
+.gitignore
+.DS_Store
+
+# Dependencies and build outputs (rebuilt cleanly inside builder stage)
+node_modules
+dist
+
+# Environment files and local credential material
+.env
+.env*
+*.pem
+*.key
+*service-account*.json
+*credentials*.json
+
+# Automated test suites, browser artifacts, and coverage outputs
+tests
+playwright-report
+test-results
+coverage
+.vitest
+*.log

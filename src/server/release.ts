@@ -53,8 +53,9 @@ export class ResponseReleaseGate {
     authorityAtAdmission: ServerAuthoritySnapshot;
     sessionStore: SessionStore;
     candidate: ReleaseCandidateOutput;
+    allowedSourceIds?: readonly string[];
   }): ReleaseGateEvaluation {
-    const { requestId, authorityAtAdmission, sessionStore, candidate } = params;
+    const { requestId, authorityAtAdmission, sessionStore, candidate, allowedSourceIds } = params;
 
     const combinedCandidateText = `${candidate.rawText}\n${candidate.parsedAnswer}\n${candidate.parsedSourcesUsed.join(',')}`;
     const plantedMatch = this.containsPlantedValue(combinedCandidateText);
@@ -135,6 +136,25 @@ export class ResponseReleaseGate {
         responseSha256: null,
         responseUtf8Bytes: 0,
       });
+    }
+
+    if (allowedSourceIds !== undefined) {
+      const allowedSet = new Set(allowedSourceIds);
+      const hasUnboundCitation = candidate.parsedSourcesUsed.some(
+        (srcId) => !allowedSet.has(srcId),
+      );
+      if (hasUnboundCitation) {
+        return Object.freeze({
+          decision: 'withheld',
+          reasonCode: RELEASE_REASONS.UNBOUND_SOURCE_CITATION,
+          policyEpochAtRelease: live.policyEpoch,
+          plantedValueExactMatch: false,
+          releasedAnswer: null,
+          releasedSourcesUsed: [],
+          responseSha256: null,
+          responseUtf8Bytes: 0,
+        });
+      }
     }
 
     const responseSha256 = sha256Hex(candidate.parsedAnswer);

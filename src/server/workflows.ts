@@ -644,7 +644,7 @@ async function executeNativeOnlyControlArm(
       retryCount: geminiResult.retryCount,
     },
     releaseDecision: 'not_applicable',
-    releaseReason: RELEASE_REASONS.PROVIDER_NOT_CALLED,
+    releaseReason: 'unmediated_control_release',
     // In Native-only control we show observed answer text only after redacting the exact synthetic
     // planted token with a clearly marked synthetic observation tag if desired, or show exact synthetic
     // fixture reply in UI while keeping receipts/logs 100% content-free. Keeping exact synthetic
@@ -731,6 +731,7 @@ export async function executeVervainGovernedArm(params: {
         requestId,
         authorityAtAdmission: authorityAtStart,
         sessionStore: deps.sessionStore,
+        allowedSourceIds: envelope.includedSourceIds,
         candidate: {
           rawText: geminiResult.rawText,
           parsedAnswer: geminiResult.parsedAnswer,

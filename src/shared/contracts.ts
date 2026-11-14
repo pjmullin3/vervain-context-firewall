@@ -297,7 +297,11 @@ export interface ScopedBlockEvidence {
   scopedWeights: readonly number[];
   baselineBlockMass: number;
   scopedBlockMass: number;
-  maskDisposition: 'admitted_to_softmax' | 'masked_scope_mismatch' | 'masked_invalid_slot';
+  maskDisposition:
+    | 'admitted_to_softmax'
+    | 'admitted_partial_tail'
+    | 'masked_scope_mismatch'
+    | 'masked_invalid_slot';
 }
 
 export interface ScopedAttentionProofView {
@@ -489,6 +493,13 @@ export function parseStrictJson(raw: string): StrictParseResult<unknown> {
             message: 'Prototype-related keys are rejected.',
           };
         }
+        if (key.includes('\u0000')) {
+          return {
+            ok: false,
+            code: API_ERROR_CODES.INVALID_REQUEST,
+            message: 'Decoded null bytes are not permitted in JSON keys.',
+          };
+        }
         if (seenKeys.has(key)) {
           return {
             ok: false,
@@ -559,7 +570,14 @@ export function parseStrictJson(raw: string): StrictParseResult<unknown> {
     }
 
     if (ch === '"') {
-      readJsonStringDecoded();
+      const decodedStr = readJsonStringDecoded();
+      if (decodedStr.includes('\u0000')) {
+        return {
+          ok: false,
+          code: API_ERROR_CODES.INVALID_REQUEST,
+          message: 'Decoded null bytes are not permitted in JSON string values.',
+        };
+      }
       return null;
     }
 
@@ -625,7 +643,13 @@ export function detectClientAuthorityOverride(params: {
         message: 'Client-supplied authority or model override header is rejected.',
       };
     }
-    if (lower === 'cookie' || lower === 'origin' || lower === 'content-type') {
+    if (
+      lower === 'cookie' ||
+      lower === 'origin' ||
+      lower === 'content-type' ||
+      lower === 'sec-fetch-site' ||
+      lower === 'host'
+    ) {
       if (seenSecurityHeaders.has(lower)) {
         return {
           ok: false,

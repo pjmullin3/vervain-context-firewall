@@ -61,6 +61,14 @@ function isFiniteVector(vec: ReadonlyArray<number>, expectedLen: number): boolea
   return true;
 }
 
+function isValidUint32Tag(tag: unknown): tag is number {
+  return typeof tag === 'number' && Number.isInteger(tag) && tag >= 0 && tag <= 0xffffffff;
+}
+
+function normalizeZero(v: number): number {
+  return Object.is(v, -0) ? 0 : v;
+}
+
 export function formatScopeHex(tag: number): string {
   return `0x${(tag >>> 0).toString(16).padStart(8, '0')}`;
 }
@@ -80,25 +88,27 @@ export function runReferencePagedAttention(input: ScopedAttentionInput): ScopedA
   const d = pool.headDim;
   const blockSize = pool.blockSize;
   const numPhysical = pool.keys.length;
+  const safeDim = typeof d === 'number' && Number.isInteger(d) && d > 0 && d <= 4096 ? d : 0;
 
   if (
-    !Number.isInteger(d) ||
-    d <= 0 ||
+    safeDim === 0 ||
     !Number.isInteger(blockSize) ||
     blockSize <= 0 ||
-    !Number.isInteger(requestScopeTag) ||
+    blockSize > 4096 ||
+    !isValidUint32Tag(requestScopeTag) ||
     pool.values.length !== numPhysical ||
     pool.blockScopeTags.length !== numPhysical ||
-    !isFiniteVector(query, d) ||
+    !pool.blockScopeTags.every(isValidUint32Tag) ||
+    !isFiniteVector(query, safeDim) ||
     validityMask.length !== blockTable.length
   ) {
     return Object.freeze({
       status: 'failed_closed_invalid_input',
-      scaleFactor: d > 0 ? 1 / Math.sqrt(d) : 0,
+      scaleFactor: safeDim > 0 ? 1 / Math.sqrt(safeDim) : 0,
       rawScores: [],
       activeMask: [],
       weights: [],
-      output: new Array<number>(Math.max(0, d)).fill(0),
+      output: Object.freeze(new Array<number>(safeDim).fill(0)),
       mismatchCount: 0,
       perBlockMass: [],
     });
@@ -267,7 +277,9 @@ export function runReferencePagedAttention(input: ScopedAttentionInput): ScopedA
     });
   }
 
-  const weights = unnormalized.map((u, idx) => (activeMask[idx] ? u / sumExp : 0));
+  const weights = unnormalized.map((u, idx) =>
+    activeMask[idx] ? normalizeZero(u / sumExp) : 0,
+  );
 
   const output = new Array<number>(d).fill(0);
   for (let i = 0; i < weights.length; i += 1) {
@@ -275,7 +287,7 @@ export function runReferencePagedAttention(input: ScopedAttentionInput): ScopedA
     if (w === 0) continue;
     const vVec = tokenValues[i]!;
     for (let dim = 0; dim < d; dim += 1) {
-      output[dim]! += w * vVec[dim]!;
+      output[dim]! = normalizeZero(output[dim]! + w * vVec[dim]!);
     }
   }
 
@@ -320,7 +332,7 @@ function maxAbsDiff(a: ReadonlyArray<number>, b: ReadonlyArray<number>): number 
 
 function roundVec(vec: ReadonlyArray<number>, digits = 6): readonly number[] {
   const factor = Math.pow(10, digits);
-  return Object.freeze(vec.map((v) => Math.round(v * factor) / factor));
+  return Object.freeze(vec.map((v) => normalizeZero(Math.round(v * factor) / factor)));
 }
 
 /**
@@ -500,7 +512,9 @@ export function buildScopedAttentionProofForSession(
         ? 'masked_scope_mismatch'
         : validFlags.every(Boolean)
           ? 'admitted_to_softmax'
-          : 'masked_invalid_slot',
+          : validFlags.some(Boolean)
+            ? 'admitted_partial_tail'
+            : 'masked_invalid_slot',
     });
   });
 

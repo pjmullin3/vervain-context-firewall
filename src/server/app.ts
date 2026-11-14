@@ -89,7 +89,10 @@ export function createAppInstance(options?: {
     options?.clientDistDir ?? path.join(process.cwd(), 'dist', 'client'),
   );
 
-  const server = http.createServer(async (req, res) => {
+  const handleRequest = async (
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): Promise<void> => {
     const handled = await handleApiOrProbeRequest(req, res, context);
     if (handled) return;
 
@@ -102,7 +105,15 @@ export function createAppInstance(options?: {
       return;
     }
 
-    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+    } catch {
+      applySecurityHeaders(res, false);
+      res.statusCode = 400;
+      res.end('Bad Request');
+      return;
+    }
     let relativePath: string;
     try {
       relativePath = decodeURIComponent(url.pathname);
@@ -171,6 +182,29 @@ export function createAppInstance(options?: {
     res.statusCode = 404;
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.end('Not Found');
+  };
+
+  const server = http.createServer((req, res) => {
+    void handleRequest(req, res).catch(() => {
+      logger.record('http_request_handler_failed', {
+        method: (req.method ?? 'GET').toUpperCase(),
+      });
+      if (!res.headersSent) {
+        applySecurityHeaders(res, true);
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(
+          JSON.stringify({
+            error: {
+              code: 'internal_error',
+              message: 'Internal server error; response withheld.',
+            },
+          }),
+        );
+      } else if (!res.writableEnded) {
+        res.destroy();
+      }
+    });
   });
 
   // Bound socket & header timeouts against slow-request exhaustion

@@ -243,7 +243,8 @@ export function evaluateContextAdmission(
       return;
     }
 
-    const safeLabel = typeof tenantLabel === 'string' && tenantLabel.length > 0 ? tenantLabel : tenantId;
+    const safeLabel =
+      typeof tenantLabel === 'string' && tenantLabel.length > 0 ? tenantLabel.slice(0, 64) : tenantId;
 
     // Step 2: Source version and content digest match the frozen server record
     const authoritativeRecord = lookupRecord(sourceId);

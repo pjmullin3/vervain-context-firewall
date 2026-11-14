@@ -23,14 +23,14 @@ export const MAX_ADMITTED_CHUNKS = 4;
 export const MAX_CHUNK_UTF8_BYTES = 4096;
 export const MAX_REQUEST_BODY_BYTES = 8192;
 
-export const MEDIATED_BOUNDARIES = [
+export const MEDIATED_BOUNDARIES = Object.freeze([
   'retrieval_to_gemini_context_envelope',
   'gemini_response_to_browser_release',
-] as const;
+] as const);
 
 export const BOUNDARY_LIMIT_NOTE = "Only this app's context and reply paths";
 
-export const RECEIPT_EXCLUSIONS = [
+export const RECEIPT_EXCLUSIONS = Object.freeze([
   'provider_internal_kv_cache_and_weights_unmediated',
   'direct_unmediated_provider_calls_outside_this_server',
   'semantic_or_paraphrased_disclosure_beyond_exact_synthetic_planted_value_scan',
@@ -38,7 +38,7 @@ export const RECEIPT_EXCLUSIONS = [
   'in_memory_hash_chain_without_external_checkpoint_does_not_detect_full_store_rollback',
   'synthetic_persona_selector_is_demo_fixture_not_enterprise_authentication',
   'external_tools_databases_and_host_administrators_outside_demo_scope',
-] as const;
+] as const);
 
 export const SCOPED_ATTENTION_LIMITATION_LABEL =
   'Reference scoped-attention proof. Not integrated with Gemini internals or a production vLLM attention backend. No latency or isolation claim.';

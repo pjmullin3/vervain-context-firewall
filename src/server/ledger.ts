@@ -82,6 +82,28 @@ export function computeReceiptChainSha256(params: {
   );
 }
 
+function cloneAndDeepFreezePayload(
+  payload: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const freezeRec = (val: unknown): unknown => {
+    if (val === null || typeof val !== 'object') {
+      return val;
+    }
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        freezeRec(item);
+      }
+      return Object.freeze(val);
+    }
+    for (const key of Object.keys(val as Record<string, unknown>)) {
+      freezeRec((val as Record<string, unknown>)[key]);
+    }
+    return Object.freeze(val);
+  };
+  const cloned = JSON.parse(canonicalJsonString(payload)) as Record<string, unknown>;
+  return freezeRec(cloned) as Readonly<Record<string, unknown>>;
+}
+
 const ROLLBACK_LIMITATION_NOTE =
   'In-memory SHA-256 chain detects mutation or reordering within this live server instance; without an external checkpoint it does not detect full-store rollback or instance restart.';
 
@@ -117,6 +139,7 @@ export class AuditLedger {
     const prevHash =
       eventIndex === 0 ? GENESIS_CHAIN_SHA256 : this.events[eventIndex - 1]!.event_sha256;
 
+    const frozenPayload = cloneAndDeepFreezePayload(params.payload);
     const base: Omit<LedgerEventRecord, 'event_sha256'> = {
       schema_version: LEDGER_EVENT_SCHEMA_VERSION,
       event_index: eventIndex,
@@ -125,7 +148,7 @@ export class AuditLedger {
       session_digest_sha256: params.sessionDigestSha256,
       stage: params.stage,
       timestamp_iso: params.timestampIso,
-      payload: params.payload,
+      payload: frozenPayload,
       prev_event_sha256: prevHash,
     };
 

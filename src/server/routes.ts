@@ -34,6 +34,7 @@ import { buildScopedAttentionProofForSession } from './scoped-attention.js';
 import {
   buildSetCookieHeader,
   extractCookieFromHeader,
+  SessionCapacityError,
   type ServerAuthoritySnapshot,
   type SessionStore,
 } from './session.js';
@@ -117,8 +118,13 @@ async function readBoundedRequestBody(
     let settled = false;
 
     req.on('data', (chunk: Buffer) => {
-      if (settled) return;
       totalBytes += chunk.length;
+      if (settled) {
+        if (totalBytes > maxBytes * 16) {
+          req.destroy();
+        }
+        return;
+      }
       if (totalBytes > maxBytes) {
         settled = true;
         resolve({
@@ -127,7 +133,6 @@ async function readBoundedRequestBody(
           status: 413,
           message: `Request body exceeds ${maxBytes} byte limit.`,
         });
-        req.destroy();
         return;
       }
       chunks.push(chunk);
@@ -154,18 +159,36 @@ async function readBoundedRequestBody(
 
 function verifySameOriginPost(req: IncomingMessage): boolean {
   const secFetchSite = req.headers['sec-fetch-site'];
-  if (typeof secFetchSite === 'string' && secFetchSite.toLowerCase() === 'cross-site') {
+  if (typeof secFetchSite === 'string') {
+    const normalizedFetchSite = secFetchSite.trim().toLowerCase();
+    if (normalizedFetchSite !== 'same-origin' && normalizedFetchSite !== 'none') {
+      return false;
+    }
+  } else if (Array.isArray(secFetchSite)) {
     return false;
   }
 
   const origin = req.headers['origin'];
+  if (Array.isArray(origin)) {
+    return false;
+  }
   if (typeof origin === 'string') {
-    if (origin === 'null') return false;
+    const trimmedOrigin = origin.trim();
+    if (trimmedOrigin === '' || trimmedOrigin.toLowerCase() === 'null') return false;
     const host = req.headers['host'];
-    if (!host) return false;
+    if (typeof host !== 'string' || host.trim().length === 0) return false;
     try {
-      const parsedOrigin = new URL(origin);
-      if (parsedOrigin.host.toLowerCase() !== host.toLowerCase()) {
+      const parsedOrigin = new URL(trimmedOrigin);
+      if (parsedOrigin.protocol !== 'http:' && parsedOrigin.protocol !== 'https:') {
+        return false;
+      }
+      if (parsedOrigin.username !== '' || parsedOrigin.password !== '') {
+        return false;
+      }
+      if (parsedOrigin.origin.toLowerCase() !== trimmedOrigin.toLowerCase()) {
+        return false;
+      }
+      if (parsedOrigin.host.toLowerCase() !== host.trim().toLowerCase()) {
         return false;
       }
     } catch {
@@ -253,7 +276,8 @@ async function parseAndValidateJsonPost(
   }
 
   const contentType = req.headers['content-type'] ?? '';
-  if (!contentType.toLowerCase().startsWith('application/json')) {
+  const mediaTypeEssence = contentType.split(';')[0]?.trim().toLowerCase() ?? '';
+  if (mediaTypeEssence !== 'application/json') {
     sendApiError(
       res,
       415,
@@ -265,6 +289,9 @@ async function parseAndValidateJsonPost(
 
   const rawBodyResult = await readBoundedRequestBody(req, MAX_REQUEST_BODY_BYTES);
   if (!rawBodyResult.ok) {
+    if (rawBodyResult.status === 413) {
+      res.setHeader('Connection', 'close');
+    }
     sendApiError(res, rawBodyResult.status, rawBodyResult.code, rawBodyResult.message);
     return { ok: false };
   }
@@ -305,7 +332,38 @@ export async function handleApiOrProbeRequest(
   ctx: ApiRouterContext,
 ): Promise<boolean> {
   const method = (req.method ?? 'GET').toUpperCase();
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const rawUrl = req.url ?? '/';
+  if (!rawUrl.startsWith('/') || rawUrl.startsWith('//')) {
+    sendApiError(
+      res,
+      400,
+      API_ERROR_CODES.INVALID_REQUEST,
+      'Malformed request target.',
+    );
+    return true;
+  }
+  const rawHost = req.headers.host ?? 'localhost';
+  if (Array.isArray(rawHost) || typeof rawHost !== 'string' || rawHost.trim().length === 0) {
+    sendApiError(
+      res,
+      400,
+      API_ERROR_CODES.INVALID_REQUEST,
+      'Malformed Host authority header.',
+    );
+    return true;
+  }
+  let url: URL;
+  try {
+    url = new URL(rawUrl, `http://${rawHost}`);
+  } catch {
+    sendApiError(
+      res,
+      400,
+      API_ERROR_CODES.INVALID_REQUEST,
+      'Malformed request target or Host authority.',
+    );
+    return true;
+  }
   const pathname = url.pathname;
 
   if (pathname === '/healthz') {
@@ -471,10 +529,24 @@ export async function handleApiOrProbeRequest(
         req.headers.cookie,
         ctx.config.sessionCookieName,
       );
-      const created = ctx.sessionStore.createOrRotateSession(
-        validated.value.persona,
-        prevCookie,
-      );
+      let created: ReturnType<SessionStore['createOrRotateSession']>;
+      try {
+        created = ctx.sessionStore.createOrRotateSession(
+          validated.value.persona,
+          prevCookie,
+        );
+      } catch (err: unknown) {
+        if (err instanceof SessionCapacityError) {
+          sendApiError(
+            res,
+            503,
+            API_ERROR_CODES.SESSION_CAPACITY_REACHED,
+            'Demo session capacity is temporarily reached. Existing sessions remain active.',
+          );
+          return true;
+        }
+        throw err;
+      }
       const setCookie = buildSetCookieHeader({
         cookieName: ctx.config.sessionCookieName,
         cookieToken: created.cookieToken,
@@ -571,6 +643,23 @@ export async function handleApiOrProbeRequest(
       sleepFn: ctx.sleepFn,
     };
 
+    const tryReserveGeminiCallsAtomic = (count: number): boolean => {
+      if (
+        !ctx.sessionStore.reserveGeminiCalls(
+          authority.sessionId,
+          count,
+          ctx.config.maxGeminiCallsPerSession,
+        )
+      ) {
+        return false;
+      }
+      if (ctx.instanceBudget.tryReserve(count)) {
+        return true;
+      }
+      ctx.sessionStore.rollbackGeminiCallReservation(authority.sessionId, count);
+      return false;
+    };
+
     if (pathname === '/api/demo/run-paired') {
       const result = await ctx.sessionStore.runIdempotentInFlight(
         authority.sessionId,
@@ -584,14 +673,7 @@ export async function handleApiOrProbeRequest(
           ) {
             return { kind: 'rate_limit' as const };
           }
-          if (
-            !ctx.sessionStore.reserveGeminiCalls(
-              authority.sessionId,
-              2,
-              ctx.config.maxGeminiCallsPerSession,
-            ) ||
-            !ctx.instanceBudget.tryReserve(2)
-          ) {
+          if (!tryReserveGeminiCallsAtomic(2)) {
             return { kind: 'budget' as const };
           }
           const paired = await runPairedProofWorkflow(workflowDeps, authority);
@@ -613,7 +695,7 @@ export async function handleApiOrProbeRequest(
           res,
           429,
           API_ERROR_CODES.BUDGET_EXCEEDED,
-          'Demo Gemini call budget reached for this session. Reset or start a fresh session.',
+          'Demo Gemini call budget reached for this session. Start a fresh session or wait for the instance window.',
         );
         return true;
       }
@@ -642,14 +724,7 @@ export async function handleApiOrProbeRequest(
           ) {
             return { kind: 'rate_limit' as const };
           }
-          if (
-            !ctx.sessionStore.reserveGeminiCalls(
-              authority.sessionId,
-              1,
-              ctx.config.maxGeminiCallsPerSession,
-            ) ||
-            !ctx.instanceBudget.tryReserve(1)
-          ) {
+          if (!tryReserveGeminiCallsAtomic(1)) {
             return { kind: 'budget' as const };
           }
           const single = await runCleanRequestWorkflow(workflowDeps, authority);
@@ -700,14 +775,7 @@ export async function handleApiOrProbeRequest(
           ) {
             return { kind: 'rate_limit' as const };
           }
-          if (
-            !ctx.sessionStore.reserveGeminiCalls(
-              authority.sessionId,
-              1,
-              ctx.config.maxGeminiCallsPerSession,
-            ) ||
-            !ctx.instanceBudget.tryReserve(1)
-          ) {
+          if (!tryReserveGeminiCallsAtomic(1)) {
             return { kind: 'budget' as const };
           }
           const single = await runRevokeDuringGenerationWorkflow(workflowDeps, authority);

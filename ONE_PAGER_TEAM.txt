@@ -1,0 +1,30 @@
+VERVAIN CONTEXT FIREWALL - TEAM BRIEF
+=====================================
+
+FOUNDER
+-------
+PJ Mullin - Founder, Vervain
+- Education: UC Berkeley, Data Science.
+- Enterprise Identity & AI Background: Previously ML products and go-to-market (GTM) at Okta, working directly on how enterprise identity systems govern human and machine principals and seeing firsthand where perimeter IAM stops once data enters downstream AI workflows.
+- Quantitative & Systems Research: Quantitative research at UC Berkeley Haas School of Business, building reproducible empirical pipelines and audit-grade data lineage over large institutional datasets.
+- Inference & GPU Kernel Engineering: #1 Open Kernel Challenge finalist [OWNER-PROVIDED - VERIFY PUBLIC WORDING].
+
+EDITORIAL & CLAIM DISCIPLINE NOTE ON COMPETITION RESULT
+-------------------------------------------------------
+[OWNER-PROVIDED - VERIFY PUBLIC WORDING]: Confirm exact organizer-published title and ranking wording with PJ Mullin prior to external publication.
+Founder inference-kernel background is included solely to explain why this team has the systems depth to execute Vervain's future self-hosted inference roadmap (propagating server-owned scope tags into production vLLM and SGLang paged-KV block allocators and attention backends). It is NOT cited as evidence for this hackathon prototype's boundary enforcement. Every technical claim in this repository rests strictly on the inspectable TypeScript implementation, automated unit/integration/adversarial/end-to-end tests, and bounded receipts.
+
+WHY THIS TEAM FITS POST-IAM INFERENCE GOVERNANCE
+------------------------------------------------
+Most teams approaching AI safety or enterprise governance understand only one side of the stack:
+
+1. Identity and API-gateway builders understand principals, OAuth/OIDC tokens, and policy epochs, yet treat the LLM runtime and KV cache as an opaque stateless black box.
+2. Inference-engine engineers understand paged KV block tables, scheduler batching, and attention kernels, yet rarely model multi-tenant enterprise authority, mid-flight policy revocation, or payload-free audit receipts.
+
+Vervain sits directly at the seam between those two worlds:
+- From enterprise IAM experience at Okta, the architecture treats server-owned identity and native datastore permissions as authoritative, rejects client-supplied authority overrides, pairs every enforcement claim with explicit denominators and exclusions, and keeps protected raw text out of audit logs and receipts.
+- From hands-on GPU inference systems work, the roadmap carries that exact same server-owned scope tag down from hosted provider envelopes (today's Google Gemini context boundary) into physical paged-KV block ownership and pre-softmax scope masking for self-hosted open-weight deployments.
+
+COLLABORATION & DESIGN-PARTNER GROUNDING
+----------------------------------------
+Vervain's product grammar (Audit, Alert, Govern after IAM; cross-tenant contamination assessment wedge; payload-free causal receipts) has been shaped alongside ML systems engineers and principal enterprise security practitioners evaluating multi-tenant retrieval and open-weight serving architectures.

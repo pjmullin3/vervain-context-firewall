@@ -56,6 +56,13 @@ interface MutableSessionRecord {
   receiptIds: string[];
 }
 
+export class SessionCapacityError extends Error {
+  constructor(message = 'Active session capacity reached.') {
+    super(message);
+    this.name = 'SessionCapacityError';
+  }
+}
+
 export class SessionStore {
   private readonly sessions = new Map<string, MutableSessionRecord>();
   private readonly secret: string;
@@ -103,23 +110,18 @@ export class SessionStore {
     return sessionId;
   }
 
-  private pruneExpiredIfNeeded(nowMs: number): void {
-    if (this.sessions.size < this.maxSessions) return;
+  private pruneExpiredSessions(nowMs: number): void {
     for (const [id, rec] of this.sessions.entries()) {
       if (rec.expiresAtMs <= nowMs) {
         this.sessions.delete(id);
       }
-    }
-    while (this.sessions.size >= this.maxSessions) {
-      const oldestKey = this.sessions.keys().next().value;
-      if (oldestKey === undefined) break;
-      this.sessions.delete(oldestKey);
     }
   }
 
   /**
    * Creates a new server-owned synthetic session for `persona` and invalidates
    * `previousCookieToken` if supplied (session rotation on persona switch).
+   * Throws `SessionCapacityError` rather than evicting live sessions when full.
    */
   public createOrRotateSession(
     persona: PersonaId,
@@ -138,7 +140,10 @@ export class SessionStore {
     }
 
     const nowMs = this.nowFn();
-    this.pruneExpiredIfNeeded(nowMs);
+    this.pruneExpiredSessions(nowMs);
+    if (this.sessions.size >= this.maxSessions) {
+      throw new SessionCapacityError();
+    }
 
     const fixture = TENANT_FIXTURES[persona];
     const sessionId = crypto.randomBytes(32).toString('hex');
@@ -268,6 +273,12 @@ export class SessionStore {
     }
     record.geminiCallsUsed += count;
     return true;
+  }
+
+  public rollbackGeminiCallReservation(sessionId: string, count: number): void {
+    const record = this.sessions.get(sessionId);
+    if (!record) return;
+    record.geminiCallsUsed = Math.max(0, record.geminiCallsUsed - count);
   }
 
   /**

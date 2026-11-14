@@ -1,0 +1,44 @@
+/*
+ * Responsibility: Design tokens for Vervain Context Firewall.
+ * Visual direction: Near-black workspace canvas, warm off-white primary text,
+ * restrained Vervain violet for mediated boundaries, and sober status accents.
+ */
+
+:root {
+  --bg-canvas: #0a0a0b;
+  --bg-surface-1: #121214;
+  --bg-surface-2: #16161a;
+  --bg-surface-3: #1b1b20;
+  --bg-inset: #0d0d10;
+
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-violet: rgba(155, 138, 245, 0.42);
+  --border-allowed: rgba(88, 184, 137, 0.38);
+  --border-withheld: rgba(224, 122, 95, 0.44);
+  --border-warning: rgba(217, 155, 82, 0.44);
+
+  --text-primary: #efede8;
+  --text-secondary: #b9b6bf;
+  --text-muted: #8b8992;
+
+  --accent-violet: #9b8af5;
+  --accent-violet-soft: rgba(155, 138, 245, 0.13);
+
+  --status-allowed: #58b889;
+  --status-allowed-soft: rgba(88, 184, 137, 0.12);
+
+  --status-withheld: #e07a5f;
+  --status-withheld-soft: rgba(224, 122, 95, 0.13);
+
+  --status-warning: #d99b52;
+  --status-warning-soft: rgba(217, 155, 82, 0.13);
+
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'SFMono-Regular', 'JetBrains Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}

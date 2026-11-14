@@ -7,7 +7,7 @@
  */
 
 import { GoogleGenAI, Type } from '@google/genai';
-import type { RuntimeMode } from '../shared/contracts.js';
+import { parseStrictJson, type RuntimeMode } from '../shared/contracts.js';
 import type { ProviderOutcome } from '../shared/reason-codes.js';
 import type { GeminiOutboundEnvelope } from './envelope.js';
 import { ALDER_RECORD, BEACON_RECORD, SYNTHETIC_PLANTED_VALUE } from './fixture.js';
@@ -246,32 +246,33 @@ function parseStructuredModelJson(
     return { ok: false };
   }
 
-  try {
-    const parsed = JSON.parse(rawText) as unknown;
-    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { ok: false };
-    }
-    const rec = parsed as Record<string, unknown>;
-    // Explicitly ignore/reject any tool-call-shaped payloads if answer is missing
-    if (typeof rec['answer'] !== 'string' || rec['answer'].trim().length === 0) {
-      return { ok: false };
-    }
-    const rawSources = rec['sources_used'];
-    if (!Array.isArray(rawSources) || !rawSources.every((s) => typeof s === 'string')) {
-      return { ok: false };
-    }
-    const sanitizedSources = rawSources
-      .map((s) => s.trim())
-      .filter((s) => /^[a-zA-Z0-9/_.-]{1,96}$/.test(s))
-      .slice(0, 8);
-    return {
-      ok: true,
-      answer: rec['answer'].trim(),
-      sourcesUsed: sanitizedSources,
-    };
-  } catch {
+  const parsed = parseStrictJson(rawText);
+  if (!parsed.ok || parsed.value === null || typeof parsed.value !== 'object' || Array.isArray(parsed.value)) {
     return { ok: false };
   }
+  const rec = parsed.value as Record<string, unknown>;
+  // Explicitly reject any tool-call-shaped payloads if answer is missing or empty
+  if (typeof rec['answer'] !== 'string' || rec['answer'].trim().length === 0) {
+    return { ok: false };
+  }
+  const rawSources = rec['sources_used'];
+  if (!Array.isArray(rawSources) || !rawSources.every((s) => typeof s === 'string')) {
+    return { ok: false };
+  }
+
+  const sanitizedSources = Array.from(
+    new Set(
+      rawSources
+        .map((s) => s.trim())
+        .filter((s) => /^[a-zA-Z0-9/_.-]{1,96}$/.test(s)),
+    ),
+  ).slice(0, 8);
+
+  return {
+    ok: true,
+    answer: rec['answer'].trim(),
+    sourcesUsed: sanitizedSources,
+  };
 }
 
 function sleepMs(ms: number): Promise<void> {
