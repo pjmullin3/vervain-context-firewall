@@ -181,4 +181,43 @@ describe('M2 Paired API Proof & Envelope Spy Verification', () => {
     expect(body.run.releasedAnswerText).toBeNull();
     expect(body.run.permittedTaskCompleted).toBe(false);
   });
+
+  it('withholds model-authored provenance that names a source absent from the outbound envelope', async () => {
+    const forgedSourceTransport = new SpyGeminiTransport(
+      new DeterministicMockGeminiTransport(() => ({
+        status: 'ok',
+        rawText: JSON.stringify({
+          answer: 'A safe-looking answer with forged provenance.',
+          sources_used: [BEACON_RECORD.sourceId],
+        }),
+      })),
+    );
+    const { baseUrl, spy } = await startTestServer(forgedSourceTransport);
+
+    const sessionResponse = await fetch(`${baseUrl}/api/demo/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ persona: 'alder' }),
+    });
+    const cookie = sessionResponse.headers.get('set-cookie')?.split(';')[0] ?? '';
+
+    const cleanResponse = await fetch(`${baseUrl}/api/demo/run-clean`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({}),
+    });
+    expect(cleanResponse.status).toBe(200);
+    const body = (await cleanResponse.json()) as {
+      run: NonNullable<DemoStateResponse['latestSingleRun']>;
+    };
+
+    expect(spy.getCapturedEnvelopes()).toHaveLength(1);
+    expect(spy.getCapturedEnvelopes()[0]?.includedSourceIds).toEqual([ALDER_RECORD.sourceId]);
+    expect(body.run.providerRuntime.outcome).toBe('succeeded');
+    expect(body.run.releaseDecision).toBe('withheld');
+    expect(body.run.releaseReason).toBe('unbound_source_citation');
+    expect(body.run.releasedAnswerText).toBeNull();
+    expect(body.run.releasedSourcesUsed).toEqual([]);
+    expect(body.run.permittedTaskCompleted).toBe(false);
+  });
 });

@@ -275,6 +275,7 @@ export class SessionStore {
     return true;
   }
 
+  /** Rolls back a just-reserved call count when the paired instance reservation fails. */
   public rollbackGeminiCallReservation(sessionId: string, count: number): void {
     const record = this.sessions.get(sessionId);
     if (!record) return;

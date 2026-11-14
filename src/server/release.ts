@@ -1,7 +1,8 @@
 /**
  * Responsibility: Nonstreaming response release gate enforcing live session authority
  * continuity (`sessionId`, `tenantId`, `principalId`, `expiresAtMs`, `policyEpoch`),
- * single-release idempotency, and bounded exact synthetic planted-value detection.
+ * single-release idempotency, model-citation binding, and bounded exact synthetic
+ * planted-value detection.
  * Trust boundary: Final server boundary before model output reaches the browser.
  */
 
@@ -46,16 +47,17 @@ export class ResponseReleaseGate {
   /**
    * Evaluates whether a candidate Gemini response may be released to the caller.
    * Reloads the session from `sessionStore`, checks single-release idempotency,
-   * verifies tenant/principal/expiry/epoch continuity, and runs the exact planted-value scan.
+   * verifies tenant/principal/expiry/epoch continuity, runs the exact planted-value scan,
+   * and requires every model-claimed source to exist in the server-built envelope.
    */
   public evaluateRelease(params: {
     requestId: string;
     authorityAtAdmission: ServerAuthoritySnapshot;
     sessionStore: SessionStore;
+    allowedSourceIds: readonly string[];
     candidate: ReleaseCandidateOutput;
-    allowedSourceIds?: readonly string[];
   }): ReleaseGateEvaluation {
-    const { requestId, authorityAtAdmission, sessionStore, candidate, allowedSourceIds } = params;
+    const { requestId, authorityAtAdmission, sessionStore, allowedSourceIds, candidate } = params;
 
     const combinedCandidateText = `${candidate.rawText}\n${candidate.parsedAnswer}\n${candidate.parsedSourcesUsed.join(',')}`;
     const plantedMatch = this.containsPlantedValue(combinedCandidateText);
@@ -138,23 +140,22 @@ export class ResponseReleaseGate {
       });
     }
 
-    if (allowedSourceIds !== undefined) {
-      const allowedSet = new Set(allowedSourceIds);
-      const hasUnboundCitation = candidate.parsedSourcesUsed.some(
-        (srcId) => !allowedSet.has(srcId),
-      );
-      if (hasUnboundCitation) {
-        return Object.freeze({
-          decision: 'withheld',
-          reasonCode: RELEASE_REASONS.UNBOUND_SOURCE_CITATION,
-          policyEpochAtRelease: live.policyEpoch,
-          plantedValueExactMatch: false,
-          releasedAnswer: null,
-          releasedSourcesUsed: [],
-          responseSha256: null,
-          responseUtf8Bytes: 0,
-        });
-      }
+    const allowedSources = new Set(allowedSourceIds);
+    const hasUnboundSourceCitation = candidate.parsedSourcesUsed.some(
+      (sourceId) => !allowedSources.has(sourceId),
+    );
+
+    if (hasUnboundSourceCitation) {
+      return Object.freeze({
+        decision: 'withheld',
+        reasonCode: RELEASE_REASONS.UNBOUND_SOURCE_CITATION,
+        policyEpochAtRelease: live.policyEpoch,
+        plantedValueExactMatch: false,
+        releasedAnswer: null,
+        releasedSourcesUsed: [],
+        responseSha256: null,
+        responseUtf8Bytes: 0,
+      });
     }
 
     const responseSha256 = sha256Hex(candidate.parsedAnswer);

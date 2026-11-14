@@ -254,6 +254,7 @@ describe('M1 Security Core: Release Gate, Canonical Receipts, and Chain Tamper D
       requestId: 'req_1',
       authorityAtAdmission: s1,
       sessionStore: store,
+      allowedSourceIds: ['alder/renewal-playbook-v3'],
       candidate: {
         rawText: '{"answer":"Discount up to 12 percent.","sources_used":["alder/renewal-playbook-v3"]}',
         parsedAnswer: 'Discount up to 12 percent.',
@@ -267,6 +268,7 @@ describe('M1 Security Core: Release Gate, Canonical Receipts, and Chain Tamper D
       requestId: 'req_1',
       authorityAtAdmission: s1,
       sessionStore: store,
+      allowedSourceIds: ['alder/renewal-playbook-v3'],
       candidate: {
         rawText: '{"answer":"Discount up to 12 percent.","sources_used":[]}',
         parsedAnswer: 'Discount up to 12 percent.',
@@ -283,6 +285,7 @@ describe('M1 Security Core: Release Gate, Canonical Receipts, and Chain Tamper D
       requestId: 'req_2',
       authorityAtAdmission: s2,
       sessionStore: store,
+      allowedSourceIds: [],
       candidate: {
         rawText: '{"answer":"Allowed text","sources_used":[]}',
         parsedAnswer: 'Allowed text',
@@ -298,6 +301,7 @@ describe('M1 Security Core: Release Gate, Canonical Receipts, and Chain Tamper D
       requestId: 'req_3',
       authorityAtAdmission: s3,
       sessionStore: store,
+      allowedSourceIds: [],
       candidate: {
         rawText: `{"answer":"Code ${SYNTHETIC_PLANTED_VALUE}","sources_used":[]}`,
         parsedAnswer: `Code ${SYNTHETIC_PLANTED_VALUE}`,
@@ -315,6 +319,7 @@ describe('M1 Security Core: Release Gate, Canonical Receipts, and Chain Tamper D
       requestId: 'req_4',
       authorityAtAdmission: s4,
       sessionStore: store,
+      allowedSourceIds: [],
       candidate: {
         rawText: '{"answer":"Allowed","sources_used":[]}',
         parsedAnswer: 'Allowed',

@@ -145,3 +145,100 @@ Out-of-scope boundaries (explicitly unmediated here):
   - Implemented native RFC 8410 Ed25519 SPKI `crypto.verify` and strict `trust-root.v1` parsing (`parseStrictTrustRootJson`, `verifyEmbeddedEd25519Signature`) directly in `src/server/inference-proof.ts`, enforcing `key_id`, `trust_root_id`, `status === 'active'`, `allow_ephemeral_demo`, `not_before <= signed_at <= not_after`, constant-time `signed_digest_sha256` binding, and 64-byte Ed25519 verification in-process before any external CLI merge.
   - Wired Carbon 4 `resolveDeepLinkSelection` in `ScopedAttentionLab.tsx` and `App.tsx` so safe UI parameters (`run`, `step`, `lane`, `receipt`) open the requested fixture state while untrusted authority parameters (`tenant`, `scope`, etc.) are stripped and flagged in `rejected-deeplink-notice`.
 - **Regression tests**: `tests/adversarial/enterprise-and-inference-proof.test.ts` (test 18) and `tests/e2e/judge-flow.spec.ts` (passing).
+## Imported Daybreak attack-fix evidence before Carbon lead integration
+
+# Daybreak Security Ledger
+
+Append-only attack, fix, and verification log for the hackathon build. This ledger
+starts from committed Carbon core `fe545349ab07`. It records local synthetic evidence
+only. It does not claim live Gemini, GPU kernel, vLLM, SGLang, or Cloud Run validation.
+
+## 2026-11-14 04:26 PST: model-authored provenance forgery
+
+- Boundary: Gemini response to server release gate.
+- Attack: A successful model response named `beacon/strategy-note-v2` in
+  `sources_used` while the server-built envelope admitted only
+  `alder/renewal-playbook-v3`.
+- Failing evidence: `npx vitest run tests/adversarial/model-output-provenance.test.ts`
+  released the response instead of withholding it.
+- Root cause: The release gate treated model-authored source identifiers as trusted
+  display metadata and did not bind them to the outbound envelope.
+- Fix: `allowedSourceIds` is now a mandatory release-gate input. Any source claim
+  outside that exact set withholds the entire answer with
+  `unbound_source_citation`.
+- Verification: Direct adversarial test and full HTTP workflow test pass. The HTTP
+  test captures an Alder-only envelope, injects a Beacon citation, and observes a
+  withheld answer with no released sources.
+- Residual boundary: This proves server-side citation binding for this application.
+  It does not prove semantic faithfulness of the model's prose to an admitted source.
+
+## 2026-11-14 04:28 PST: malformed Host async rejection
+
+- Boundary: Raw HTTP request to Node process.
+- Attack: `Host: [` caused `new URL()` to throw before the router exception boundary.
+- Failing evidence: `npx vitest run tests/adversarial/http-ingress-resilience.test.ts`
+  observed a rejected promise with `ERR_INVALID_URL` instead of a bounded response.
+- Root cause: Request-target parsing occurred outside the router `try` block, and the
+  Node HTTP callback returned an uncontained async promise.
+- Fix: Invalid request target or Host authority now returns a content-free 400. The
+  application server also contains every request promise and emits a bounded 500 or
+  closes an already-started response on an unexpected rejection.
+- Verification: A raw TCP request receives HTTP 400, followed by a successful 200
+  health check against the same server process.
+- Residual boundary: Node's own HTTP parser and platform proxy limits remain outside
+  this application-level test.
+
+## 2026-11-14 04:29 PST: cross-session eviction at capacity
+
+- Boundary: Unauthenticated session creation to live session storage.
+- Attack: Creating a session at the configured cap silently evicted the oldest
+  unexpired session, invalidating another user's active cookie.
+- Failing evidence: `npx vitest run tests/adversarial/session-isolation.test.ts`
+  showed that a third session did not fail at a two-session cap.
+- Root cause: Capacity pruning deleted valid records after removing expired records.
+- Fix: Capacity cleanup deletes expired sessions only. New unauthenticated creation
+  fails closed with HTTP 503 and `session_capacity_reached`; authenticated rotation
+  may replace only its own slot.
+- Verification: Store-level and HTTP-level tests prove the overflow response is 503,
+  the original session remains usable, and legitimate self-rotation still succeeds.
+- Residual boundary: This preserves existing sessions but is not a distributed abuse
+  prevention system. Deployment-level rate limiting is still recommended.
+
+## 2026-11-14 04:31 PST: ambiguous JSON-prefix media type
+
+- Boundary: Mutation endpoint content-type validation.
+- Attack: `Content-Type: application/jsonp` was accepted because validation used a
+  string-prefix check.
+- Failing evidence: The targeted HTTP test received 200 instead of 415.
+- Fix: The parser now extracts the media type before parameters and requires exact
+  `application/json`.
+- Verification: The adversarial request now receives 415 with
+  `invalid_content_type`; ordinary JSON with parameters remains supported by design.
+
+## 2026-11-14 04:32 PST: non-atomic two-level call budget
+
+- Boundary: Per-session and per-instance Gemini call accounting.
+- Attack: When the instance window was full, the denied request still consumed the
+  session's call allowance. The session remained locked out after the instance window
+  cleared even though no provider call occurred.
+- Failing evidence: `npx vitest run tests/adversarial/budget-atomicity.test.ts`
+  received 429 on the post-window retry instead of 200.
+- Root cause: The session reservation mutated state before the instance reservation,
+  with no rollback path.
+- Fix: Reservation is now a synchronous transaction. An instance-limit failure rolls
+  back the just-acquired session allowance.
+- Verification: Two independent sessions reproduce the full instance window, the
+  second receives the expected 429, time advances beyond the window, and its retry
+  succeeds with 200.
+
+## 2026-11-14 04:33 PST: local gate result
+
+- Passed: `npm run typecheck`, `npm run lint`, `npm test` with 25 passed and one
+  intentionally skipped live test, `npm run build`, and `npm run proof:paired`.
+- Paired proof: Native-only transmitted both synthetic sources and the planted value;
+  Native plus Vervain admitted 1 of 2, excluded Beacon and the planted value, released
+  the permitted Alder answer, and verified 12 ledger events across two receipts.
+- Blocked verifier commands: `npm run verify:bundle` and consequently
+  `npm run verify:claims` are declared in committed `package.json`, but their script
+  files are absent from committed Carbon core `fe545349ab07`. Carbon has uncommitted
+  files at those paths in its owned worktree, so Daybreak did not copy or modify them.
