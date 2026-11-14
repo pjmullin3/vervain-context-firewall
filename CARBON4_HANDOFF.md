@@ -2,11 +2,13 @@
 
 ## 1. Branch, Commit & Build Provenance
 
-- **Worktree**: `/Users/pjmullin/Desktop/vervain-carbon-experience-lane`
-- **Branch**: `carbon/experience` (committed locally; **not merged**)
-- **Base Commit SHA**: `805ce37176d459d771436a05823984fe1b73980a`
-- **Implementation Commit SHA**: `339b07ffbcacd50c97f779c8ebf52113e76e7dfa`
-- **Handoff Commit**: Final commit on `carbon/experience` adding `CARBON4_HANDOFF.md` and `HANDOFF.json` directly atop `339b07ffbcacd50c97f779c8ebf52113e76e7dfa`
+- **Recorded Initial Worktree Check (`LANE.md` verified)**:
+  - `pwd`: `/Users/pjmullin/Desktop/vervain-carbon-experience-lane`
+  - `branch`: `carbon/experience`
+  - `initial git status`: clean
+  - `initial HEAD`: `805ce37176d459d771436a05823984fe1b73980a`
+- **Implementation Commit SHA**: `3bee8f0744c7f9544bb6b7596534bc69ddeaaeca`
+- **Handoff Commit**: Final commit on `carbon/experience` updating `CARBON4_HANDOFF.md` and `HANDOFF.json` directly atop `3bee8f0744c7f9544bb6b7596534bc69ddeaaeca` (**not merged**)
 - **Antigravity Session / Build Proof**: `conversation://3c2dbe16-a3a5-4a62-a3b0-f3470e61d420` (transcript at `/Users/pjmullin/.gemini/antigravity-cli/brain/3c2dbe16-a3a5-4a62-a3b0-f3470e61d420/.system_generated/logs/transcript.jsonl`)
 - **Hard Compute Hold Compliance**: Zero GPU, cluster, pod, remote host, or paid compute connections were attempted or configured. Every pre-GPU fixture explicitly displays `NO GPU RUN RECORDED` with `gpu_run_recorded: false`.
 - **Owned Paths Touched Only**:
@@ -25,20 +27,20 @@ Package name: `@vervain/judge-replay` (`0.1.0`, ESM + TypeScript declarations, *
 | Subpath Export | Purpose |
 | --- | --- |
 | `@vervain/judge-replay` | Full React + TypeScript package (`VervainInferenceReplay`, `ReceiptDrawer`, parser, state machine, summary generator, fixture loader, CSS token map, idempotent style helper) |
-| `@vervain/judge-replay/core` | Framework-neutral TypeScript core (schema types, `parseEvidenceBundle`, `validateEvidenceBundle`, `createReplayState`, `replayReducer`, `generateCausalSummary`, `loadSafeFixture`, `resolveDeepLinkSelection`, `VERVAIN_CSS_TOKENS`) |
+| `@vervain/judge-replay/core` | Framework-neutral TypeScript core (schema types, `parseEvidenceBundle`, `validateEvidenceBundle`, `createReplayState`, `replayReducer`, `generateCausalSummary`, `loadSafeFixture`, `resolveDeepLinkSelection`, `VERVAIN_REPLAY_TOKENS`) |
 | `@vervain/judge-replay/tokens.css` | Standalone CSS custom properties (`--vr-*`) |
 | `@vervain/judge-replay/styles.css` | Component, responsive, focus, and `prefers-reduced-motion` stylesheet (also idempotently auto-injected at mount so lead integration never breaks if CSS bundler config differs) |
 
-### Exported Symbols
+### Exported Symbols (Machine-Verified in `tests/package-exports.test.ts`)
 
-- **Evidence Schema & Types**: `EVIDENCE_SCHEMA_VERSION` (`"vervain.judge_replay.v1"`), `CANONICAL_TIMELINE_STEPS`, `EvidenceBundle`, `ValidatedEvidenceBundle`, `ParseEvidenceResult`, `SourceStatus`, `SourceBadgeLabel`, `VerifierVerdict`, `EvidenceFreshness`, `LaneId`, `TimelineStepIndex`, `StepDisposition`, `LineageItem`, `PhysicalBlockEvidence`, `TimelineStepEvidence`, `LaneReplayEvidence`, `SampledCountRatioMetric`, `SampledDistributionMetric`, `SampledScalarMetric`, `PerformanceOverheadMetrics`, `PairedConfigurationCheck`, `ValidationErrorItem`
-- **Parser & Untrusted Input Validation**: `parseEvidenceBundle`, `validateEvidenceBundle`, `checkPairedConfiguration`, `canRenderOutcomeClaim`, `mapSourceStatusToBadge`, `escapeHtml`, `scanUntrustedGraph`, `sanitizeIdentifier`, `deepFreeze`
-- **Deterministic Replay State Machine**: `createReplayState`, `replayReducer`, `DEMO_STEP_INTERVAL_MS`, `ReplayState`, `ReplayEvent`, `ReplaySurfaceKind`, `CreateReplayStateOptions`
+- **Evidence Schema & Types**: `EVIDENCE_SCHEMA_VERSION` (`"vervain.judge_replay.v1"`), `CANONICAL_TIMELINE_STEPS`, `LIMITS`, `EvidenceBundle`, `ValidatedEvidenceBundle`, `ParseEvidenceResult`, `ValidationIssue`, `SourceStatus`, `SourceBadgeLabel`, `VerifierVerdict`, `EvidenceFreshness`, `LaneId`, `TimelineStepIndex`, `TimelineStepId`, `StepDisposition`, `LineageItem`, `PhysicalBlockEvidence`, `TimelineStepEvidence`, `LaneReplayEvidence`, `SampledCountRatioMetric`, `SampledPercentileMetric`, `SampledScalarMetric`, `LanePerformanceEvidence`, `PairedConfigWarning`
+- **Parser & Untrusted Input Validation**: `parseEvidenceBundle`, `validateEvidenceBundle`, `checkPairedConfiguration`, `canRenderOutcomeClaim`, `mapSourceStatusToBadge`, `escapeHtml`, `scanUntrustedGraph`, `isForbiddenProtectedKey`, `validateSafeId`, `validateBoundedText`, `validateSha256Prefixed`, `validateGitShaOrUnrecorded`, `validateIsoUtcTimestamp`, `deepFreeze`
+- **Deterministic Replay State Machine**: `createReplayState`, `replayReducer`, `computeMaxRecordedStepIndex`, `classifySurfaceKind`, `defaultPosterStepForEvidence`, `ReplayMachineState`, `ReplayMachineAction`, `ReplaySurfaceKind`, `PlaybackStatus`, `CreateReplayStateOptions`
 - **React Components**: `VervainInferenceReplay` (`VervainInferenceReplayProps`), `ReceiptDrawer` (`ReceiptDrawerProps`)
 - **Text Summary & Denominator Formatters**: `generateCausalSummary`, `formatCountRatioMetric`, `formatPercentileMetric`, `formatScalarMetric`
-- **Design Tokens & Styles**: `VERVAIN_CSS_TOKENS`, `toCssCustomPropertyBlock`, `VERVAIN_EMBEDDED_CSS`, `ensureStylesInjected`
-- **Safe Fixture Loader & Deep-Link Allowlist**: `loadSafeFixture`, `createSafeFixtureRegistry`, `resolveDeepLinkSelection` (`SafeFixtureRegistry`, `DeepLinkSelection`)
-- **Copy Contract**: `COPY_CONTRACT`, `BANNED_UNBOUNDED_CLAIMS`, `containsBannedUnboundedClaim`
+- **Design Tokens & Styles**: `VERVAIN_REPLAY_TOKENS`, `VERVAIN_REPLAY_TOKENS_CSS`, `VERVAIN_EMBEDDED_CSS`, `ensureStylesInjected`
+- **Safe Fixture Loader & Deep-Link Allowlist**: `loadSafeFixture`, `createSafeFixtureRegistry`, `resolveDeepLinkSelection` (`SafeFixtureRegistry`, `SafeDeepLinkSelection`)
+- **Copy Contract**: `COPY_CONTRACT`, `BANNED_UNBOUNDED_CLAIMS`, `findBannedClaims`
 
 ---
 
@@ -118,13 +120,14 @@ export function JudgeReplaySection(): React.JSX.Element {
     "local-paired"
   );
 
-  // Pass raw JSON or live H200 receipt payload directly; VervainInferenceReplay
-  // validates schema, rejects live labels on fixtures, and preserves object identity across mode switches.
-  const activePayload = registry.getRaw(deepLink.runAlias ?? "local-paired");
+  // Pass static fixture payload with fromFixture={true} (rejects accidental "live" labels).
+  // After GPU GO, pass verified H200 artifact JSON with fromFixture={false}.
+  const activePayload = registry.getRaw(deepLink.runAlias);
 
   return (
     <VervainInferenceReplay
       evidence={activePayload}
+      fromFixture
       initialLane={deepLink.lane}
       initialStepIndex={deepLink.stepIndex}
       initialReceiptOpen={deepLink.receiptOpen}
@@ -134,13 +137,11 @@ export function JudgeReplaySection(): React.JSX.Element {
 }
 ```
 
-When a verified H200 artifact is produced after PJ's `GPU GO`, pass the parsed JSON artifact via `evidence={h200Artifact}` (not `loadSafeFixture`, which intentionally blocks `"source_status": "live"` on static fixtures).
-
 ---
 
 ## 6. Fixture Statuses (Pre-GPU Honesty Audit)
 
-All 5 fixtures under `fixtures/judge-replay/` pass schema validation (`loadSafeFixture` where expected, or intentional digest mismatch for `verifier-failed-digest.json`), set `"gpu_run_recorded": false`, include `"NO GPU RUN RECORDED"`, and carry **zero** `live` or `recorded` H200 labels:
+All 5 fixtures under `fixtures/judge-replay/` pass `loadSafeFixture`, set `"gpu_run_recorded": false`, include `"NO GPU RUN RECORDED"`, and carry **zero** `live` or `recorded` H200 labels:
 
 | Fixture Path | Safe Alias | `source_status` | Badge | `verifier.verdict` | Purpose |
 | --- | --- | --- | --- | --- | --- |
@@ -154,7 +155,7 @@ All 5 fixtures under `fixtures/judge-replay/` pass schema validation (`loadSafeF
 
 ## 7. Accessibility & Responsive Verification
 
-Verified via automated Vitest + Testing Library tests (`22 passed`) and real Google Chrome Playwright E2E checks (`4 passed`):
+Verified via automated Vitest + Testing Library tests (`24 passed`) and real Google Chrome Playwright E2E checks (`4 passed`):
 
 - **WCAG AA Contrast**: Computed luminance contrast verified `>= 4.5:1` across primary heading, technical copy, outcome copy, full-size limit copy (`>= 15px`), status badges, active step detail, and metadata keys.
 - **Zero Color-Only Status**:
@@ -165,7 +166,7 @@ Verified via automated Vitest + Testing Library tests (`22 passed`) and real Goo
 - **Full Keyboard Operation**: `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, and `End` scrub and move focus across the 9 timeline steps; `Enter`/`Space` activate stage readouts and controls; `Escape` closes `ReceiptDrawer` and restores focus to the exact opener button.
 - **Visible Focus**: High-contrast `:focus-visible` outline (`2px solid #a88eff`, `2px` offset) across all buttons, timeline steps, and disclosure summaries.
 - **Reduced Motion**: `@media (prefers-reduced-motion: reduce)` sets carrier and drawer `transition-duration: 0s` (verified in Playwright with `emulateMedia({ reducedMotion: "reduce" })`), switching cleanly between discrete states without loss of meaning. Zero ambient or text-background animations exist in any mode.
-- **Screen-Reader Semantics**: `<header>`, `<main>`, `<aside role="dialog">`, hierarchical headings, descriptive `aria-label` on SVG and stage buttons, polite live region (`role="status"`) limited to meaningful step/lane changes, and full plain-text causal summary from `generateCausalSummary`.
+- **Screen-Reader Semantics**: `<header>`, `<main>`, `<aside role="dialog">`, hierarchical headings, descriptive `aria-label` on SVG and stage buttons, polite live region (`aria-live="polite"`) limited to meaningful step/lane changes, and full plain-text causal summary from `generateCausalSummary`.
 - **Responsive Range**: Verified zero horizontal overflow (`scrollWidth <= innerWidth`) at `360x840` narrow mobile, `1440x980` desktop poster, and `1920x1080` presentation screen.
 
 ---
