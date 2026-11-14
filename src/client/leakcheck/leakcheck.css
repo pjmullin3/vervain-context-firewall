@@ -33,7 +33,7 @@
 }
 .lc-chip.is-live { border-color: #3d6b4c; color: #9fd8b0; }
 .lc-chip.is-mock { border-color: #6b5a3d; color: #e8c88a; }
-.lc-crosslink { color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: underline; text-underline-offset: 2px; }
+.lc-crosslink { margin-left: -6px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: underline; text-underline-offset: 2px; }
 .lc-crosslink:hover { color: #ededf0; }
 .lc-crosslink:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; border-radius: 2px; }
 .lc-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -140,7 +140,7 @@
 .lc-ask { display: flex; align-items: center; gap: 8px; margin: 0; }
 .lc-ask-label { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .lc-input {
-  width: 200px;
+  width: 140px;
   font: inherit;
   background: #0f0f11;
   color: #ededf0;

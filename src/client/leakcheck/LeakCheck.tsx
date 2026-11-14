@@ -360,8 +360,8 @@ export function LeakCheck() {
   const placeholder = asker === 'alder' ? "e.g. What is Pied Piper's project code?" : "e.g. What is Acme's renewal discount?";
 
   const otherDemo = window.location.hostname.includes('h200')
-    ? { href: 'https://demo.vervain.io', label: 'Also live on Gemini 4 Carbon' }
-    : { href: 'https://h200.vervain.io', label: 'Run it on our H200 (Gemma 3)' };
+    ? { href: 'https://demo.vervain.io', label: 'Gemini demo', title: 'Also live on Gemini 4 Carbon' }
+    : { href: 'https://h200.vervain.io', label: 'H200 demo', title: 'Run it on our H200 (Gemma 3)' };
 
   return (
     <div className="lc-root">
@@ -373,7 +373,7 @@ export function LeakCheck() {
         <span className={`lc-chip ${isLive ? 'is-live' : 'is-mock'}`} title={`Model: ${model}`}>
           {labels.chip}
         </span>
-        <a className="lc-crosslink" href={otherDemo.href}>
+        <a className="lc-crosslink" href={otherDemo.href} title={otherDemo.title}>
           {otherDemo.label}
         </a>
         <div className="lc-asker" role="radiogroup" aria-label="Asking as">
