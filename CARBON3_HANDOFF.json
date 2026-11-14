@@ -1,0 +1,130 @@
+{
+  "schema_version": "carbon3-handoff.v1",
+  "lane": "Carbon 3 (Independent Evidence Verifier)",
+  "worktree": "/Users/pjmullin/Desktop/vervain-carbon-evidence-lane",
+  "branch": "carbon/evidence",
+  "implementation_commit_sha": "1f40eb05a8a47bf0ab619cc541bfa48b1a0f7622",
+  "unmerged_do_not_merge": true,
+  "gpu_hold_respected": true,
+  "external_h200_untouched": true,
+  "owned_paths": [
+    "verification/",
+    "packages/evidence-verifier/",
+    "schemas/verification/",
+    "docs/verification/",
+    "CARBON3_HANDOFF.md",
+    "HANDOFF.json"
+  ],
+  "key_files": [
+    "schemas/verification/inference-proof.v1.schema.json",
+    "schemas/verification/verifier-result.v1.schema.json",
+    "schemas/verification/command-receipt.v1.schema.json",
+    "schemas/verification/run-manifest.v1.schema.json",
+    "schemas/verification/trust-root.v1.schema.json",
+    "packages/evidence-verifier/pyproject.toml",
+    "packages/evidence-verifier/README.md",
+    "packages/evidence-verifier/src/evidence_verifier/__init__.py",
+    "packages/evidence-verifier/src/evidence_verifier/__main__.py",
+    "packages/evidence-verifier/src/evidence_verifier/cli.py",
+    "packages/evidence-verifier/src/evidence_verifier/strict_json.py",
+    "packages/evidence-verifier/src/evidence_verifier/schema_validator.py",
+    "packages/evidence-verifier/src/evidence_verifier/crypto.py",
+    "packages/evidence-verifier/src/evidence_verifier/sanitizer.py",
+    "packages/evidence-verifier/src/evidence_verifier/invariants.py",
+    "packages/evidence-verifier/src/evidence_verifier/renderer.py",
+    "packages/evidence-verifier/src/evidence_verifier/run_dir.py",
+    "packages/evidence-verifier/src/evidence_verifier/mutator.py",
+    "packages/evidence-verifier/src/evidence_verifier/reason_codes.py",
+    "packages/evidence-verifier/ts/package.json",
+    "packages/evidence-verifier/ts/tsconfig.json",
+    "packages/evidence-verifier/ts/types/node/index.d.ts",
+    "packages/evidence-verifier/ts/src/index.ts",
+    "packages/evidence-verifier/ts/src/strict-json.ts",
+    "packages/evidence-verifier/ts/src/sanitizer.ts",
+    "packages/evidence-verifier/ts/src/verifier.ts",
+    "packages/evidence-verifier/tests/test_strict_json_and_canonical.py",
+    "packages/evidence-verifier/tests/test_crypto_and_trust_root.py",
+    "packages/evidence-verifier/tests/test_invariants_and_corpus.py",
+    "packages/evidence-verifier/tests/test_sanitizer.py",
+    "packages/evidence-verifier/tests/test_run_dir_and_wrapper.py",
+    "packages/evidence-verifier/tests/test_cli_and_ts.py",
+    "verification/run_local_gates.py",
+    "verification/run_wrapped.py",
+    "verification/verify_h200_run.sh",
+    "verification/generate_fixtures.py",
+    "verification/fixtures/corpus_expectations.json",
+    "docs/verification/THREAT_MODEL.md",
+    "docs/verification/REASON_CODES.md",
+    "docs/verification/INTEGRATION.md",
+    "docs/verification/H200_VERIFICATION_RUNBOOK.md",
+    "CARBON3_HANDOFF.md",
+    "HANDOFF.json"
+  ],
+  "total_files_in_implementation_commit": 196,
+  "supported_schema_versions": [
+    "inference-proof.v1",
+    "verifier-result.v1",
+    "run-manifest.v1",
+    "command-receipt.v1",
+    "trust-root.v1"
+  ],
+  "verdict_contract": {
+    "precedence": "ERROR > FAIL > NO VERDICT > PASS",
+    "exit_codes": {
+      "PASS": 0,
+      "FAIL": 1,
+      "NO VERDICT": 2,
+      "ERROR": 3
+    },
+    "reason_code_counts": {
+      "PASS": 2,
+      "FAIL": 57,
+      "NO VERDICT": 10,
+      "ERROR": 4,
+      "total": 73
+    }
+  },
+  "corpus_counts": {
+    "json_fixtures_total": 35,
+    "valid_baselines": 2,
+    "honest_incomplete_or_local_only": 2,
+    "adversarial_json_fixtures": 31,
+    "run_dir_corpora": 7,
+    "runtime_mutation_campaign_cases": 31
+  },
+  "gates": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 verification/run_local_gates.py",
+    "all_passed": true,
+    "format_and_annotations": true,
+    "compileall": true,
+    "pyflakes": true,
+    "ts_typecheck_and_build": true,
+    "pytest": {
+      "passed": true,
+      "test_count": 40,
+      "skipped": 0,
+      "failed": 0
+    },
+    "secret_scan": {
+      "passed": true,
+      "hits": 0
+    },
+    "dependency_and_offline_scan": {
+      "passed": true,
+      "issues": 0
+    }
+  },
+  "integration": {
+    "cli_entrypoint": "python3 -m evidence_verifier <verify|verify-run|mutate|sanitize|explain>",
+    "bounded_h200_script": "verification/verify_h200_run.sh",
+    "command_wrapper": "verification/run_wrapped.py",
+    "ts_package_dir": "packages/evidence-verifier/ts"
+  },
+  "limitations": [
+    "No GPU, cluster pod, or remote host was connected to or inspected during offline work prior to PJ's GPU GO.",
+    "ephemeral_test_trust_root.json is for deterministic offline fixtures only and must not be trusted for real judge/H200 verification.",
+    "PASS indicates only satisfaction of named invariants for the pinned configuration and declared exclusions, never universal security or uninstrumented-path coverage.",
+    "Host Python environment lacks external ruff/mypy binaries; static verification uses pyflakes, AST public-annotation checks, syntax compilation, and tsc."
+  ],
+  "git_clean_expected_after_handoff_commit": true
+}
