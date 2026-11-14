@@ -103,4 +103,31 @@ describe('Daybreak: HTTP ingress resilience', () => {
       error: { code: 'invalid_content_type' },
     });
   });
+
+  it('returns a bounded 413 and remains healthy after an oversized body', async () => {
+    const config = loadServerConfig({
+      NODE_ENV: 'test',
+      DEMO_MODE: 'mock',
+      SESSION_SECRET: 'daybreak_body_limit_secret_32_bytes',
+    });
+    activeApp = createAppInstance({ config, emitLogsToStdout: false });
+    await new Promise<void>((resolve) => {
+      activeApp!.server.listen(0, '127.0.0.1', () => resolve());
+    });
+    const port = (activeApp.server.address() as AddressInfo).port;
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const oversizedResponse = await fetch(`${baseUrl}/api/demo/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ persona: 'alder', padding: 'x'.repeat(9_000) }),
+    });
+    expect(oversizedResponse.status).toBe(413);
+    await expect(oversizedResponse.json()).resolves.toMatchObject({
+      error: { code: 'payload_too_large' },
+    });
+
+    const healthyResponse = await fetch(`${baseUrl}/healthz`);
+    expect(healthyResponse.status).toBe(200);
+  });
 });

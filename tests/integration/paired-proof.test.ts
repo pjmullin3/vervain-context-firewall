@@ -220,4 +220,42 @@ describe('M2 Paired API Proof & Envelope Spy Verification', () => {
     expect(body.run.releasedSourcesUsed).toEqual([]);
     expect(body.run.permittedTaskCompleted).toBe(false);
   });
+
+  it('rejects an overlong source list instead of truncating away a forged citation', async () => {
+    const truncationBypassTransport = new SpyGeminiTransport(
+      new DeterministicMockGeminiTransport(() => ({
+        status: 'ok',
+        rawText: JSON.stringify({
+          answer: 'A safe-looking answer with an omitted ninth citation.',
+          sources_used: [
+            ...Array.from({ length: 8 }, () => ALDER_RECORD.sourceId),
+            BEACON_RECORD.sourceId,
+          ],
+        }),
+      })),
+    );
+    const { baseUrl } = await startTestServer(truncationBypassTransport);
+    const sessionResponse = await fetch(`${baseUrl}/api/demo/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ persona: 'alder' }),
+    });
+    const cookie = sessionResponse.headers.get('set-cookie')?.split(';')[0] ?? '';
+
+    const cleanResponse = await fetch(`${baseUrl}/api/demo/run-clean`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({}),
+    });
+    expect(cleanResponse.status).toBe(200);
+    const body = (await cleanResponse.json()) as {
+      run: NonNullable<DemoStateResponse['latestSingleRun']>;
+    };
+
+    expect(body.run.providerRuntime.outcome).toBe('invalid_response');
+    expect(body.run.releaseDecision).toBe('not_applicable');
+    expect(body.run.releaseReason).toBe('provider_failed');
+    expect(body.run.releasedAnswerText).toBeNull();
+    expect(body.run.releasedSourcesUsed).toEqual([]);
+  });
 });

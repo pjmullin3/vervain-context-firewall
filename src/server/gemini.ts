@@ -247,31 +247,43 @@ function parseStructuredModelJson(
   }
 
   const parsed = parseStrictJson(rawText);
-  if (!parsed.ok || parsed.value === null || typeof parsed.value !== 'object' || Array.isArray(parsed.value)) {
+  if (
+    !parsed.ok ||
+    parsed.value === null ||
+    typeof parsed.value !== 'object' ||
+    Array.isArray(parsed.value)
+  ) {
     return { ok: false };
   }
   const rec = parsed.value as Record<string, unknown>;
-  // Explicitly reject any tool-call-shaped payloads if answer is missing or empty
+  const keys = Object.keys(rec);
+  if (keys.length !== 2 || !keys.includes('answer') || !keys.includes('sources_used')) {
+    return { ok: false };
+  }
   if (typeof rec['answer'] !== 'string' || rec['answer'].trim().length === 0) {
     return { ok: false };
   }
   const rawSources = rec['sources_used'];
-  if (!Array.isArray(rawSources) || !rawSources.every((s) => typeof s === 'string')) {
+  if (!Array.isArray(rawSources) || rawSources.length > 8) {
     return { ok: false };
   }
 
-  const sanitizedSources = Array.from(
-    new Set(
-      rawSources
-        .map((s) => s.trim())
-        .filter((s) => /^[a-zA-Z0-9/_.-]{1,96}$/.test(s)),
-    ),
-  ).slice(0, 8);
+  const sourcesUsed: string[] = [];
+  const seenSources = new Set<string>();
+  for (const rawSource of rawSources) {
+    if (typeof rawSource !== 'string') return { ok: false };
+    const source = rawSource.trim();
+    if (!/^[a-zA-Z0-9/_.-]{1,96}$/.test(source) || seenSources.has(source)) {
+      return { ok: false };
+    }
+    seenSources.add(source);
+    sourcesUsed.push(source);
+  }
 
   return {
     ok: true,
     answer: rec['answer'].trim(),
-    sourcesUsed: sanitizedSources,
+    sourcesUsed,
   };
 }
 

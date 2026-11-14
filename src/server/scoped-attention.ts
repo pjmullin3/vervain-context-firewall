@@ -96,6 +96,7 @@ export function runReferencePagedAttention(input: ScopedAttentionInput): ScopedA
     blockSize <= 0 ||
     blockSize > 4096 ||
     !isValidUint32Tag(requestScopeTag) ||
+    typeof enforceScopeMask !== 'boolean' ||
     pool.values.length !== numPhysical ||
     pool.blockScopeTags.length !== numPhysical ||
     !pool.blockScopeTags.every(isValidUint32Tag) ||
@@ -148,8 +149,8 @@ export function runReferencePagedAttention(input: ScopedAttentionInput): ScopedA
       !vBlock ||
       kBlock.length !== blockSize ||
       vBlock.length !== blockSize ||
-      typeof tag !== 'number' ||
-      !Number.isInteger(tag)
+      !isValidUint32Tag(tag) ||
+      slotValidity.some((slot) => typeof slot !== 'boolean')
     ) {
       return Object.freeze({
         status: 'failed_closed_invalid_input',

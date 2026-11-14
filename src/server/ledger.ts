@@ -247,6 +247,7 @@ export class AuditLedger {
     }
 
     let expectedPrevReceiptHash = GENESIS_CHAIN_SHA256;
+    let nextExpectedEventIndex = 0;
     for (let rIdx = 0; rIdx < this.receiptOrder.length; rIdx += 1) {
       const entry = this.receiptOrder[rIdx]!;
       const receipt = this.receipts.get(entry.receiptId);
@@ -269,6 +270,33 @@ export class AuditLedger {
           headChainSha256: this.headReceiptChainSha256,
           failureIndex: rIdx,
           failureReason: 'previous_receipt_chain_sha256_mismatch',
+          limitationNote: ROLLBACK_LIMITATION_NOTE,
+        };
+      }
+      if (receipt.chain.first_event_index !== nextExpectedEventIndex) {
+        return {
+          verified: false,
+          checkedEvents: this.events.length,
+          checkedReceipts: rIdx,
+          headChainSha256: this.headReceiptChainSha256,
+          failureIndex: receipt.chain.first_event_index,
+          failureReason: 'receipt_event_coverage_gap_or_overlap',
+          limitationNote: ROLLBACK_LIMITATION_NOTE,
+        };
+      }
+      const eventRangeCount =
+        receipt.chain.last_event_index - receipt.chain.first_event_index + 1;
+      if (
+        eventRangeCount <= 0 ||
+        receipt.chain.event_count_in_run !== eventRangeCount
+      ) {
+        return {
+          verified: false,
+          checkedEvents: this.events.length,
+          checkedReceipts: rIdx,
+          headChainSha256: this.headReceiptChainSha256,
+          failureIndex: rIdx,
+          failureReason: 'receipt_event_count_mismatch',
           limitationNote: ROLLBACK_LIMITATION_NOTE,
         };
       }
@@ -318,6 +346,19 @@ export class AuditLedger {
       }
 
       expectedPrevReceiptHash = current_receipt_chain_sha256;
+      nextExpectedEventIndex = receipt.chain.last_event_index + 1;
+    }
+
+    if (nextExpectedEventIndex !== this.events.length) {
+      return {
+        verified: false,
+        checkedEvents: nextExpectedEventIndex,
+        checkedReceipts: this.receiptOrder.length,
+        headChainSha256: this.headReceiptChainSha256,
+        failureIndex: nextExpectedEventIndex,
+        failureReason: 'unreceipted_ledger_events',
+        limitationNote: ROLLBACK_LIMITATION_NOTE,
+      };
     }
 
     return {

@@ -242,3 +242,63 @@ only. It does not claim live Gemini, GPU kernel, vLLM, SGLang, or Cloud Run vali
   `npm run verify:claims` are declared in committed `package.json`, but their script
   files are absent from committed Carbon core `fe545349ab07`. Carbon has uncommitted
   files at those paths in its owned worktree, so Daybreak did not copy or modify them.
+
+## 2026-11-14 04:34 PST: oversized body reset instead of 413
+
+- Boundary: Bounded HTTP request-body reader.
+- Attack: A JSON body larger than 8 KiB caused an immediate socket destroy before the
+  application could deliver its declared 413 response.
+- Failing evidence: The real HTTP client received `UND_ERR_SOCKET` and zero response
+  bytes.
+- Fix: The reader stops buffering at the limit and drains ignored remainder bytes while
+  the route sends a bounded 413.
+- Verification: The client receives 413 with `payload_too_large`, and a subsequent
+  health request against the same process returns 200.
+
+## 2026-11-14 04:35 PST: reset-during-generation temporal control
+
+- Boundary: Session reset racing an in-flight provider response.
+- Attack: Pause the provider after dispatch, reset the session through the real HTTP
+  endpoint, then release the old-generation provider result.
+- Result: Existing controls passed. The response was withheld with
+  `authority_mismatch`, the answer remained null, and cleared run and receipt state
+  were not resurrected.
+- Claim limit: This is deterministic application-level temporal consistency evidence,
+  not provider-internal KV-cache revocation evidence.
+
+## 2026-11-14 04:36 PST: source-list truncation bypass
+
+- Boundary: Structured model-response parser before release binding.
+- Attack: Return eight duplicate allowed citations followed by a forged foreign citation.
+  The parser silently truncated the ninth item before the release gate inspected it.
+- Failing evidence: Provider outcome was `succeeded` instead of `invalid_response`.
+- Fix: Model JSON now uses the strict duplicate-key and prototype-key rejecting parser,
+  requires exactly `answer` and `sources_used`, rejects more than eight sources, rejects
+  invalid identifiers, and rejects duplicates. No model field is silently dropped.
+- Verification: The full HTTP workflow classifies the attack as `invalid_response`,
+  does not apply release, and exposes no answer or sources.
+
+## 2026-11-14 04:37 PST: orphan-event verification false positive
+
+- Boundary: Append-only event and receipt-chain verifier.
+- Attack: Append a valid event without any covering receipt and ask for chain
+  verification.
+- Failing evidence: The verifier returned `verified: true` with one event and zero
+  receipts.
+- Fix: Verification now requires receipt ranges to form a complete, contiguous,
+  non-overlapping partition of the event log and validates each declared event count.
+- Verification: Orphan events fail with `unreceipted_ledger_events`; existing receipt
+  tamper tests and the paired proof remain valid.
+
+## 2026-11-14 04:38 PST: scoped-attention label coercion
+
+- Boundary: Executable CPU scoped-attention reference input validation.
+- Attacks: A request tag of `-1` aliased `0xffffffff`; a block tag of `-1` aliased a
+  valid request; and a string validity entry was truthy-coerced into an active token.
+- Failing evidence: All three cases returned `ok` and exposed the test value vector.
+- Fix: Request and block scope tags must be exact uint32 values, scope enforcement must
+  be boolean, and every validity slot must be boolean before any attention computation.
+- Verification: All attacks now return `failed_closed_invalid_input` with a zero output;
+  clean equivalence, foreign mass zero, all-masked, invalid-block, and nonfinite tests pass.
+- Claim limit: This hardens only the CPU reference. Production CUDA or Triton evidence
+  remains pending the separate inference lane and explicit `GPU GO`.
