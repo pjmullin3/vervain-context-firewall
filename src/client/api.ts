@@ -5,6 +5,7 @@
  * or model override parameters.
  */
 
+import type { ModelCall } from './leakcheck/Telemetry.js';
 import type {
   ArmExecutionView,
   ContextReceipt,
@@ -74,6 +75,7 @@ export async function runPairedProofRequest(question?: string): Promise<{
   pairedRun: NonNullable<DemoStateResponse['latestPairedRun']>;
   session: SafePersonaView;
   ledgerSummary: LedgerVerificationResult;
+  modelCalls?: ModelCall[];
 }> {
   const trimmed = question?.trim() ?? '';
   return requestJson('/api/demo/run-paired', {

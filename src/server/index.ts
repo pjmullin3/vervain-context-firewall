@@ -9,6 +9,9 @@ import { loadServerConfig } from './config.js';
 const config = loadServerConfig();
 const { server, context } = createAppInstance({ config });
 
+// Live vLLM metrics poller (only for the self-hosted provider; content-free).
+context.telemetry?.start();
+
 server.listen(config.port, '0.0.0.0', () => {
   context.logger.record('server_listening', {
     port: config.port,
@@ -19,6 +22,7 @@ server.listen(config.port, '0.0.0.0', () => {
 });
 
 const shutdown = (): void => {
+  context.telemetry?.stop();
   server.close(() => {
     process.exit(0);
   });

@@ -6,6 +6,8 @@
  * errors, keys, or cross-session receipts.
  */
 
+import { OpenAICompatibleChatTransport } from './openai-compatible.js';
+import { bearerMatches, validatePodSample, type TelemetryHub } from './telemetry.js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   BOUNDARY_LIMIT_NOTE,
@@ -65,6 +67,7 @@ export interface ApiRouterContext {
   readonly logger: SafeStructuredLogger;
   readonly instanceBudget: InstanceGeminiBudgetLimiter;
   readonly sleepFn?: (ms: number) => Promise<void>;
+  readonly telemetry?: TelemetryHub;
 }
 
 const SECURITY_HEADERS: Readonly<Record<string, string>> = Object.freeze({
@@ -413,6 +416,13 @@ export async function handleApiOrProbeRequest(
 
   if (!pathname.startsWith('/api/')) {
     return false;
+  }
+
+  // Machine-to-machine telemetry: handled before the browser-session and override checks.
+  // The ingest route accepts only the provider bearer key; the read route is public and content-free.
+  if (pathname === '/api/telemetry' || pathname === '/api/telemetry/ingest') {
+    await handleTelemetryRoute(req, res, ctx, pathname, method);
+    return true;
   }
 
   try {
@@ -769,10 +779,16 @@ export async function handleApiOrProbeRequest(
           if (!tryReserveGeminiCallsAtomic(2)) {
             return { kind: 'budget' as const };
           }
+          const seqBefore =
+            ctx.transport instanceof OpenAICompatibleChatTransport ? ctx.transport.lastSeq : 0;
           const paired = await runPairedProofWorkflow(workflowDeps, authority, {
             question: customQuestion,
           });
-          return { kind: 'ok' as const, paired };
+          const modelCalls =
+            ctx.transport instanceof OpenAICompatibleChatTransport
+              ? ctx.transport.getCallsSince(seqBefore)
+              : [];
+          return { kind: 'ok' as const, paired, modelCalls };
         },
       );
 
@@ -798,6 +814,7 @@ export async function handleApiOrProbeRequest(
       const freshSnap = ctx.sessionStore.getSnapshotBySessionId(authority.sessionId);
       sendJson(res, 200, {
         pairedRun: result.paired,
+        modelCalls: result.modelCalls,
         session: ctx.sessionStore.toSafePersonaView(
           freshSnap.ok ? freshSnap.snapshot : authority,
         ),
@@ -925,4 +942,59 @@ export async function handleApiOrProbeRequest(
     }
     return true;
   }
+}
+
+async function handleTelemetryRoute(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ctx: ApiRouterContext,
+  pathname: string,
+  method: string,
+): Promise<void> {
+  const hub = ctx.telemetry;
+  if (!hub || !ctx.config.openAICompat) {
+    sendApiError(res, 404, API_ERROR_CODES.NOT_FOUND, 'Unknown API endpoint.');
+    return;
+  }
+  if (pathname === '/api/telemetry') {
+    if (method !== 'GET') {
+      sendApiError(res, 405, API_ERROR_CODES.METHOD_NOT_ALLOWED, 'GET required.');
+      return;
+    }
+    sendJson(res, 200, hub.snapshot());
+    return;
+  }
+  if (method !== 'POST') {
+    sendApiError(res, 405, API_ERROR_CODES.METHOD_NOT_ALLOWED, 'POST required.');
+    return;
+  }
+  if (!bearerMatches(req.headers['authorization'], ctx.config.openAICompat.apiKey)) {
+    sendApiError(res, 401, API_ERROR_CODES.INVALID_REQUEST, 'Unauthorized.');
+    return;
+  }
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const buf = chunk as Buffer;
+    size += buf.length;
+    if (size > 4096) {
+      sendApiError(res, 413, API_ERROR_CODES.INVALID_REQUEST, 'Body too large.');
+      return;
+    }
+    chunks.push(buf);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    sendApiError(res, 400, API_ERROR_CODES.INVALID_REQUEST, 'Invalid JSON.');
+    return;
+  }
+  const sample = validatePodSample(parsed, Date.now());
+  if (!sample) {
+    sendApiError(res, 400, API_ERROR_CODES.INVALID_REQUEST, 'Invalid telemetry sample.');
+    return;
+  }
+  hub.addPodSample(sample);
+  sendJson(res, 200, { ok: true });
 }

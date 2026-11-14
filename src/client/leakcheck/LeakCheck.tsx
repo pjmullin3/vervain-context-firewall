@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ArmExecutionView, DemoStateResponse, LedgerVerificationResult, PersonaId } from '../../shared/contracts.js';
+import { ModelCallInspector, TelemetryPanel, useTelemetry, type ModelCall } from './Telemetry.js';
 import { createOrSwitchPersonaSession, fetchDemoState, runPairedProofRequest, verifyLedgerChainRequest } from '../api.js';
 import { BrandLogo } from '../datamap/BrandLogo.jsx';
 import { DataMap, type DataMapSource } from '../datamap/DataMap.jsx';
@@ -224,6 +225,24 @@ function replaySource(cast: Cast, observations: { current: Observation[] }, t0: 
   };
 }
 
+/** Calls run in arm order (native only first); the governed arm may skip the model. */
+function callFor(paired: Paired, calls: ModelCall[], vervainOn: boolean): ModelCall | null {
+  if (calls.length === 0) return null;
+  const offCalled = modelCalled(paired.nativeOnly);
+  const onCalled = modelCalled(paired.nativePlusVervain);
+  if (vervainOn) return onCalled ? calls[calls.length - 1] ?? null : null;
+  return offCalled ? calls[0] ?? null : null;
+}
+
+function podLabelOf(t: { pods: { latest: Record<string, unknown> }[] }): string | null {
+  const p = t.pods.find((x) => x.latest['role'] === 'primary');
+  if (!p) return null;
+  const name = typeof p.latest['pod_name'] === 'string' ? p.latest['pod_name'] : null;
+  const gpu = typeof p.latest['gpu_name'] === 'string' ? p.latest['gpu_name'].replace(/^NVIDIA\s+/, '') : null;
+  const region = typeof p.latest['region'] === 'string' ? p.latest['region'] : null;
+  return name ? `${name}${gpu || region ? ` (${[gpu, region].filter(Boolean).join(', ')})` : ''}` : null;
+}
+
 function armOf(paired: Paired, vervainOn: boolean): ArmExecutionView {
   return vervainOn ? paired.nativePlusVervain : paired.nativeOnly;
 }
@@ -239,6 +258,8 @@ export function LeakCheck() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [asker, setAsker] = useState<PersonaId>(DEFAULT_ASKER);
   const [question, setQuestion] = useState('');
+  const [modelCalls, setModelCalls] = useState<ModelCall[]>([]);
+  const tele = useTelemetry();
   /** The question the shown result answered (null = the built-in question). */
   const [askedQuestion, setAskedQuestion] = useState<string | null>(null);
   const cast = useMemo(() => castFor(asker), [asker]);
@@ -283,6 +304,7 @@ export function LeakCheck() {
     setRunning(true);
     setError(null);
     setPaired(null);
+    setModelCalls([]);
     const asked = question.trim();
     const t0 = Date.now();
     observations.current = requestObservations(cast, t0);
@@ -295,6 +317,7 @@ export function LeakCheck() {
       observations.current = [...requestObservations(cast, t0), ...resultObservations(cast, runArm, t1)];
       tags.current = armTags(cast, runArm, observations.current, labels.short);
       setAskedQuestion(asked.length > 0 ? asked : null);
+      setModelCalls(result.modelCalls ?? []);
       setPaired(result.pairedRun);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The run failed.');
@@ -441,6 +464,7 @@ export function LeakCheck() {
         </div>
       </header>
 
+      <div className="lc-body">
       <div className="lc-map">
         <DataMap
           key={`${asker}-${startedAt}`}
@@ -473,6 +497,21 @@ export function LeakCheck() {
             </p>
           </section>
         ) : null}
+        {arm && !error && paired && tele.available && tele.data ? (
+          <ModelCallInspector
+            call={callFor(paired, modelCalls, vervainOn)}
+            vervainOn={vervainOn}
+            modelCalled={modelCalled(arm)}
+            pieces={[
+              { owner: cast.name, label: cast.ownNote, sent: modelCalled(arm) },
+              { owner: cast.otherName, label: cast.otherNote, sent: arm.foreignChunkEnteredEnvelope },
+            ]}
+            rawAnswer={arm.releasedAnswerText ?? null}
+            podLabel={podLabelOf(tele.data)}
+          />
+        ) : null}
+      </div>
+      {tele.available ? <TelemetryPanel data={tele.data} fetchedAt={tele.fetchedAt} /> : null}
       </div>
 
       {drawerOpen && paired && arm ? (
@@ -545,9 +584,7 @@ function ReceiptDrawer({ cast, arm, vervainOn, onClose }: { cast: Cast; arm: Arm
 
       <section className="lc-gpu">
         <strong>On our own GPU</strong>
-        <p>NVIDIA H200 · vLLM 0.30.0 · Qwen2.5-7B-Instruct (open model).</p>
-        <p>Vervain off: the model's answer contained Pied Piper's secret project code (2 of 2 runs).</p>
-        <p>Vervain on: Pied Piper's note was blocked, Acme got its answer, receipt verified.</p>
+        <p>Earlier today on this H200 we measured the same leak with Qwen2.5-7B (2 of 2 runs). Live now: Gemma 3 12B, telemetry on the right.</p>
       </section>
     </aside>
   );

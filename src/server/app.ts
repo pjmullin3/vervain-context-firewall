@@ -24,6 +24,7 @@ import {
   type ApiRouterContext,
 } from './routes.js';
 import { SessionStore } from './session.js';
+import { createTelemetryHub } from './telemetry.js';
 import { InstanceGeminiBudgetLimiter } from './workflows.js';
 
 const MIME_BY_EXT: Readonly<Record<string, string>> = Object.freeze({
@@ -86,7 +87,11 @@ export function createAppInstance(options?: {
     logger,
     instanceBudget,
     sleepFn: options?.sleepFn,
+    telemetry: config.openAICompat
+      ? createTelemetryHub(config.openAICompat.baseUrl, config.openAICompat.model)
+      : undefined,
   };
+
 
   const resolvedClientDir = path.resolve(
     options?.clientDistDir ?? path.join(process.cwd(), 'dist', 'client'),
