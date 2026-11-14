@@ -12,8 +12,10 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './workspace/workspace.css';
 
+/** Evidence view: `#evidence`, or an existing replay deep link (`?run=...`). */
 function currentView(): 'workspace' | 'evidence' {
-  return window.location.hash === '#evidence' ? 'evidence' : 'workspace';
+  if (window.location.hash === '#evidence') return 'evidence';
+  return new URLSearchParams(window.location.search).has('run') ? 'evidence' : 'workspace';
 }
 
 function Root() {
@@ -28,7 +30,7 @@ function Root() {
     <>
       <nav className="vw-evidence-bar" aria-label="Views">
         <VervainMark size={18} />
-        <a href="#">Workspace</a>
+        <a href="/">Workspace</a>
         <a href="#evidence" className="is-current" aria-current="page">
           Evidence
         </a>
