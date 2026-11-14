@@ -459,6 +459,7 @@ describe('Campaign D: Concurrency Races, Release Gate, Secondary Scanner, and Re
       requestId: 'req_replay_once_only',
       authorityAtAdmission: snapshot,
       sessionStore: store,
+      allowedSourceIds: [ALDER_RECORD.sourceId],
       candidate: {
         rawText: '{"answer":"Authorized summary.","sources_used":["alder/renewal-playbook-v3"]}',
         parsedAnswer: 'Authorized summary.',
@@ -473,6 +474,7 @@ describe('Campaign D: Concurrency Races, Release Gate, Secondary Scanner, and Re
         requestId: 'req_replay_once_only',
         authorityAtAdmission: snapshot,
         sessionStore: store,
+        allowedSourceIds: [ALDER_RECORD.sourceId],
         candidate: {
           rawText: '{"answer":"Authorized summary.","sources_used":["alder/renewal-playbook-v3"]}',
           parsedAnswer: 'Authorized summary.',

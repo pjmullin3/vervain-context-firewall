@@ -759,7 +759,7 @@ describe('Campaign C: SpyGeminiTransport Retries, Provider Failure Modes, and En
       expect(out.rawText).toBeNull();
     }
 
-    // Valid response with malformed entries in sources_used strips unsafe entries cleanly
+    // A response with malformed source entries is rejected instead of being silently rewritten.
     const sanitizeMock = new DeterministicMockGeminiTransport(() => ({
       status: 'ok',
       rawText: JSON.stringify({
@@ -781,8 +781,8 @@ describe('Campaign C: SpyGeminiTransport Retries, Provider Failure Modes, and En
       logger: new SafeStructuredLogger(),
       sleepFn: async () => {},
     });
-    expect(cleanOut.outcome).toBe('succeeded');
-    expect(cleanOut.parsedSourcesUsed).toEqual([ALDER_RECORD.sourceId]);
+    expect(cleanOut.outcome).toBe('invalid_response');
+    expect(cleanOut.parsedSourcesUsed).toEqual([]);
   });
 
   it('blocks forged, spread-cloned, prototype-chained, and proxied chunks from bypassing buildVervainGeminiEnvelope', () => {

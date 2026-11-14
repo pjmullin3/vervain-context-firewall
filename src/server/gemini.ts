@@ -44,6 +44,7 @@ export interface GeminiExecutionOutcome {
   readonly parsedAnswer: string | null;
   readonly parsedSourcesUsed: readonly string[];
   readonly responseUtf8Bytes: number;
+  readonly plantedValueExactMatch: boolean;
 }
 
 const MAX_RESPONSE_UTF8_BYTES = 8192;
@@ -333,6 +334,8 @@ export async function executeGeminiEnvelope(params: {
   const completedMs = Date.now();
   const completedIso = new Date(completedMs).toISOString();
   const latencyMs = Math.max(0, completedMs - startedMs);
+  const plantedValueExactMatch =
+    typeof lastRaw.rawText === 'string' && lastRaw.rawText.includes(SYNTHETIC_PLANTED_VALUE);
 
   let outcome: ProviderOutcome;
   let parsedAnswer: string | null = null;
@@ -403,5 +406,6 @@ export async function executeGeminiEnvelope(params: {
     parsedAnswer,
     parsedSourcesUsed,
     responseUtf8Bytes,
+    plantedValueExactMatch,
   });
 }

@@ -70,6 +70,11 @@ export function loadServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCo
   const allowLiveGeminiInTests = env.ALLOW_LIVE_GEMINI === '1';
 
   const rawSecret = (env.SESSION_SECRET ?? '').trim();
+  if (nodeEnv === 'production' && rawSecret.length < 32) {
+    throw new Error(
+      'SESSION_SECRET must be explicitly configured with at least 32 characters in production.',
+    );
+  }
   const sessionSecret = rawSecret.length >= 32 ? rawSecret : EPHEMERAL_DEV_SECRET;
 
   return Object.freeze({

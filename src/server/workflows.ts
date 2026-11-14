@@ -494,7 +494,9 @@ async function executeNativeOnlyControlArm(
   });
 
   const combinedText = `${geminiResult.rawText ?? ''}\n${geminiResult.parsedAnswer ?? ''}`;
-  const plantedInResponse = deps.releaseGate.containsPlantedValue(combinedText);
+  const plantedInResponse =
+    geminiResult.plantedValueExactMatch ||
+    deps.releaseGate.containsPlantedValue(combinedText);
   const nativeResponseEvidence =
     geminiResult.parsedAnswer !== null
       ? computeReleasedResponseEvidence({
@@ -754,6 +756,14 @@ export async function executeVervainGovernedArm(params: {
       candidateReleasedSources = releaseEval.releasedSourcesUsed;
       responseSha256 = releaseEval.responseSha256;
       responseUtf8Bytes = releaseEval.responseUtf8Bytes;
+    } else if (geminiResult.plantedValueExactMatch) {
+      const liveCheck = deps.sessionStore.getSnapshotBySessionId(authorityAtStart.sessionId);
+      policyEpochAtRelease = liveCheck.ok
+        ? liveCheck.snapshot.policyEpoch
+        : authorityAtStart.policyEpoch;
+      releaseDecision = 'withheld';
+      releaseReason = RELEASE_REASONS.PLANTED_VALUE_DETECTED;
+      plantedValueMatch = true;
     } else {
       const liveCheck = deps.sessionStore.getSnapshotBySessionId(authorityAtStart.sessionId);
       policyEpochAtRelease = liveCheck.ok

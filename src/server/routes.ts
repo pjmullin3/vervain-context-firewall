@@ -392,8 +392,8 @@ export async function handleApiOrProbeRequest(
     const runtime = buildRuntimeStatusView(ctx);
     const adapterReady =
       runtime.mode === 'mock' || runtime.liveKeyConfigured;
-    sendJson(res, 200, {
-      status: 'ready',
+    sendJson(res, adapterReady ? 200 : 503, {
+      status: adapterReady ? 'ready' : 'not_ready',
       context_gate: 'ready',
       gemini_adapter_mode: runtime.mode,
       gemini_key_configured: runtime.liveKeyConfigured,

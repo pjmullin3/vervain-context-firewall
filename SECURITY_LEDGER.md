@@ -169,8 +169,8 @@ only. It does not claim live Gemini, GPU kernel, vLLM, SGLang, or Cloud Run vali
 - Verification: Direct adversarial test and full HTTP workflow test pass. The HTTP
   test captures an Alder-only envelope, injects a Beacon citation, and observes a
   withheld answer with no released sources.
-- Residual boundary: This proves server-side citation binding for this application.
-  It does not prove semantic faithfulness of the model's prose to an admitted source.
+- Residual boundary: This establishes server-side citation binding for this application.
+  It does not establish semantic faithfulness of the model's prose to an admitted source.
 
 ## 2026-11-14 04:28 PST: malformed Host async rejection
 
