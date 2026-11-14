@@ -182,7 +182,7 @@
 .lt-facts dt { opacity: .7; }
 .lt-facts dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 .lt-wait { opacity: .6; font-style: italic; }
-.lt-call { position: absolute; left: 12px; bottom: 12px; width: min(420px, calc(100% - 24px)); max-height: 46%; overflow-y: auto; font-size: 12px; padding: 10px 12px; border: 1px solid rgba(127,127,127,.3); background: var(--color-surface, #fff); z-index: 5; }
+.lt-call { position: absolute; right: 16px; top: 14px; width: min(340px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow-y: auto; font-size: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #121214ee; z-index: 20; }
 .lt-mono { font-family: ui-monospace, Menlo, monospace; font-size: 11px; overflow-wrap: anywhere; margin: 4px 0; }
 .lt-label { font-weight: 700; margin: 8px 0 2px; }
 .lt-pieces { list-style: none; padding: 0; margin: 0; }
