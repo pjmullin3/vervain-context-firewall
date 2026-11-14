@@ -40,4 +40,42 @@ describe('Daybreak: model-output provenance binding', () => {
     expect(evaluation.releasedAnswer).toBeNull();
     expect(evaluation.releasedSourcesUsed).toEqual([]);
   });
+
+  it('binds released source provenance into the response evidence digest', () => {
+    const store = new SessionStore({
+      secret: 'daybreak_response_digest_secret_32_bytes',
+      ttlMs: 60_000,
+    });
+    const gate = new ResponseReleaseGate();
+    const { snapshot } = store.createOrRotateSession('alder');
+    const allowed = ['alder/source-a', 'alder/source-b'];
+
+    const first = gate.evaluateRelease({
+      requestId: 'req_digest_source_a',
+      authorityAtAdmission: snapshot,
+      sessionStore: store,
+      allowedSourceIds: allowed,
+      candidate: {
+        rawText: '{"answer":"Same answer.","sources_used":["alder/source-a"]}',
+        parsedAnswer: 'Same answer.',
+        parsedSourcesUsed: ['alder/source-a'],
+      },
+    });
+    const second = gate.evaluateRelease({
+      requestId: 'req_digest_source_b',
+      authorityAtAdmission: snapshot,
+      sessionStore: store,
+      allowedSourceIds: allowed,
+      candidate: {
+        rawText: '{"answer":"Same answer.","sources_used":["alder/source-b"]}',
+        parsedAnswer: 'Same answer.',
+        parsedSourcesUsed: ['alder/source-b'],
+      },
+    });
+
+    expect(first.decision).toBe('released');
+    expect(second.decision).toBe('released');
+    expect(first.responseSha256).not.toBe(second.responseSha256);
+    expect(first.responseUtf8Bytes).toBeGreaterThan(Buffer.byteLength('Same answer.', 'utf8'));
+  });
 });

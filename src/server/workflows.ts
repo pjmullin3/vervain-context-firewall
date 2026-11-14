@@ -45,7 +45,10 @@ import { executeGeminiEnvelope, type GeminiTransport } from './gemini.js';
 import type { AuditLedger } from './ledger.js';
 import { buildAndAppendRunReceipt } from './receipts.js';
 import { domainSeparatedDigest, type SafeStructuredLogger } from './redaction.js';
-import type { ResponseReleaseGate } from './release.js';
+import {
+  computeReleasedResponseEvidence,
+  type ResponseReleaseGate,
+} from './release.js';
 import {
   retrieveBrokenControlChunks,
   retrieveTenantScopedChunks,
@@ -492,6 +495,13 @@ async function executeNativeOnlyControlArm(
 
   const combinedText = `${geminiResult.rawText ?? ''}\n${geminiResult.parsedAnswer ?? ''}`;
   const plantedInResponse = deps.releaseGate.containsPlantedValue(combinedText);
+  const nativeResponseEvidence =
+    geminiResult.parsedAnswer !== null
+      ? computeReleasedResponseEvidence({
+          parsedAnswer: geminiResult.parsedAnswer,
+          parsedSourcesUsed: geminiResult.parsedSourcesUsed,
+        })
+      : null;
   const completedAtMs = Date.now();
 
   const receipt = buildAndAppendRunReceipt({
@@ -515,11 +525,8 @@ async function executeNativeOnlyControlArm(
     providerRetryCount: geminiResult.retryCount,
     releaseDecision: 'unmediated_control_release',
     releaseReasonCode: 'unmediated_control_release',
-    responseSha256:
-      geminiResult.parsedAnswer !== null
-        ? domainSeparatedDigest('response', geminiResult.parsedAnswer)
-        : null,
-    responseUtf8Bytes: geminiResult.responseUtf8Bytes,
+    responseSha256: nativeResponseEvidence?.responseSha256 ?? null,
+    responseUtf8Bytes: nativeResponseEvidence?.responseUtf8Bytes ?? 0,
     plantedValueExactMatch: plantedInResponse,
     permittedTaskCompleted: false,
     permittedTaskBasis: PERMITTED_TASK_BASES.UNMEDIATED_CONTROL_OBSERVATION,

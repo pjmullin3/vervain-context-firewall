@@ -302,3 +302,15 @@ only. It does not claim live Gemini, GPU kernel, vLLM, SGLang, or Cloud Run vali
   clean equivalence, foreign mass zero, all-masked, invalid-block, and nonfinite tests pass.
 - Claim limit: This hardens only the CPU reference. Production CUDA or Triton evidence
   remains pending the separate inference lane and explicit `GPU GO`.
+
+## 2026-11-14 10:12 PST: response digest omitted source provenance
+
+- Boundary: Released-response evidence recorded in receipts.
+- Attack: Release identical answer text twice with different allowed `sources_used`.
+- Failing evidence: Both releases produced the same `response_sha256`, so the receipt
+  could not distinguish which provenance list the caller saw.
+- Fix: Governed and native-control receipts now use a domain-separated SHA-256 over the
+  canonical released object containing both `answer` and the ordered `sources_used` list.
+  `response_utf8_bytes` measures that same canonical evidence object.
+- Verification: The two source variants now produce distinct digests; direct release,
+  integration, receipt-chain, type, and lint tests pass.

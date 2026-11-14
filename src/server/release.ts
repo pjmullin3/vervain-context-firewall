@@ -12,7 +12,7 @@ import {
   type ReleaseReasonCode,
 } from '../shared/reason-codes.js';
 import { SYNTHETIC_PLANTED_VALUE } from './fixture.js';
-import { sha256Hex } from './redaction.js';
+import { domainSeparatedDigest } from './redaction.js';
 import type { ServerAuthoritySnapshot, SessionStore } from './session.js';
 
 export interface ReleaseCandidateOutput {
@@ -30,6 +30,28 @@ export interface ReleaseGateEvaluation {
   readonly releasedSourcesUsed: readonly string[];
   readonly responseSha256: string | null;
   readonly responseUtf8Bytes: number;
+}
+
+export interface ReleasedResponseEvidence {
+  readonly responseSha256: string;
+  readonly responseUtf8Bytes: number;
+}
+
+/** Binds both released prose and its ordered model-authored source provenance. */
+export function computeReleasedResponseEvidence(
+  candidate: Pick<ReleaseCandidateOutput, 'parsedAnswer' | 'parsedSourcesUsed'>,
+): ReleasedResponseEvidence {
+  const canonicalReleasedObject = JSON.stringify({
+    answer: candidate.parsedAnswer,
+    sources_used: [...candidate.parsedSourcesUsed],
+  });
+  return Object.freeze({
+    responseSha256: domainSeparatedDigest(
+      'released-response-v1',
+      canonicalReleasedObject,
+    ),
+    responseUtf8Bytes: Buffer.byteLength(canonicalReleasedObject, 'utf8'),
+  });
 }
 
 export class ResponseReleaseGate {
@@ -61,7 +83,6 @@ export class ResponseReleaseGate {
 
     const combinedCandidateText = `${candidate.rawText}\n${candidate.parsedAnswer}\n${candidate.parsedSourcesUsed.join(',')}`;
     const plantedMatch = this.containsPlantedValue(combinedCandidateText);
-    const candidateBytes = Buffer.byteLength(candidate.parsedAnswer, 'utf8');
 
     if (this.completedRequestIds.has(requestId)) {
       return Object.freeze({
@@ -158,7 +179,7 @@ export class ResponseReleaseGate {
       });
     }
 
-    const responseSha256 = sha256Hex(candidate.parsedAnswer);
+    const responseEvidence = computeReleasedResponseEvidence(candidate);
 
     return Object.freeze({
       decision: 'released',
@@ -167,8 +188,8 @@ export class ResponseReleaseGate {
       plantedValueExactMatch: false,
       releasedAnswer: candidate.parsedAnswer,
       releasedSourcesUsed: Object.freeze([...candidate.parsedSourcesUsed]),
-      responseSha256,
-      responseUtf8Bytes: candidateBytes,
+      responseSha256: responseEvidence.responseSha256,
+      responseUtf8Bytes: responseEvidence.responseUtf8Bytes,
     });
   }
 }
