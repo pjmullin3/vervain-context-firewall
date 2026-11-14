@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Vervain</title>
+  <defs>
+    <linearGradient id="dissolve" x1="124" y1="140" x2="200" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E5D9F5"/>
+      <stop offset=".55" stop-color="#BEA0E6"/>
+      <stop offset="1" stop-color="#BEA0E6" stop-opacity=".76"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#DAD8D4" stroke-width="1.8" stroke-linejoin="miter">
+    <path d="m36 64 80-40 80 40-80 40Z"/>
+    <path d="m32 74 76 38v96l-76-38Z"/>
+    <path d="M124 112v96"/>
+  </g>
+  <g stroke="url(#dissolve)" stroke-width="1.8" stroke-linecap="butt" stroke-dasharray="6 4">
+    <path d="m124 112 76-38m-76 134 76-38m0-96v96"/>
+  </g>
+</svg>

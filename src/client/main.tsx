@@ -1,5 +1,5 @@
 /**
- * Responsibility: Browser React 19 entrypoint. The Vervain workspace is the default view;
+ * Responsibility: Browser React 19 entrypoint. The stock Vervain DataMap leak check is the default view;
  * the detailed evidence page (`App`) stays reachable at `#evidence`.
  * Trust boundary: Untrusted browser bundle; zero credentials or server modules imported.
  */
@@ -7,7 +7,8 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.js';
-import { VervainMark, Workspace } from './workspace/Workspace.js';
+import { LeakCheck } from './leakcheck/LeakCheck.js';
+import { VervainMark } from './workspace/Workspace.js';
 import './styles/tokens.css';
 import './styles/app.css';
 import './workspace/workspace.css';
@@ -25,12 +26,12 @@ function Root() {
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  if (view === 'workspace') return <Workspace />;
+  if (view === 'workspace') return <LeakCheck />;
   return (
     <>
       <nav className="vw-evidence-bar" aria-label="Views">
         <VervainMark size={18} />
-        <a href="/">Workspace</a>
+        <a href="/">Leak check</a>
         <a href="#evidence" className="is-current" aria-current="page">
           Evidence
         </a>

@@ -8,6 +8,8 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'coverage/**',
+      // Stock Vervain DataMap, copied unchanged from the product codebase (see PROVENANCE.md).
+      'src/client/datamap/**',
     ],
   },
   ...tseslint.configs.recommended,
