@@ -69,14 +69,16 @@ export async function createOrSwitchPersonaSession(persona: PersonaId): Promise<
   });
 }
 
-export async function runPairedProofRequest(): Promise<{
+/** Runs both arms. An empty or missing `question` keeps the frozen question. */
+export async function runPairedProofRequest(question?: string): Promise<{
   pairedRun: NonNullable<DemoStateResponse['latestPairedRun']>;
   session: SafePersonaView;
   ledgerSummary: LedgerVerificationResult;
 }> {
+  const trimmed = question?.trim() ?? '';
   return requestJson('/api/demo/run-paired', {
     method: 'POST',
-    body: JSON.stringify({}),
+    body: JSON.stringify(trimmed.length > 0 ? { question: trimmed } : {}),
   });
 }
 

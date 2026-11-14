@@ -877,6 +877,80 @@ export function validatePersonaSessionPayload(body: unknown): StrictParseResult<
   return { ok: true, value: { persona } };
 }
 
+/** Longest custom question accepted by `/api/demo/run-paired`, in UTF-16 code units after trim. */
+export const MAX_CUSTOM_QUESTION_LENGTH = 300;
+
+/**
+ * Control, format, surrogate, private-use, unassigned, and line/paragraph separator code points.
+ * Rejecting these keeps the question printable and free of bidi or zero-width tricks.
+ */
+const NON_PRINTABLE_QUESTION_CHARS = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\u2028\u2029]/u;
+
+/**
+ * Validates the paired-run body: either `{}` (frozen question) or `{ "question": string }`.
+ * The question is user text for the model only; it never carries authority, and every other
+ * key is rejected exactly as on the parameterless endpoints.
+ */
+export function validatePairedRunPayload(
+  body: unknown,
+): StrictParseResult<{ question: string | null }> {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    return {
+      ok: false,
+      code: API_ERROR_CODES.INVALID_REQUEST,
+      message: 'Request body must be a JSON object.',
+    };
+  }
+  const record = body as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (key !== 'question') {
+      return {
+        ok: false,
+        code: isForbiddenAuthorityKey(key)
+          ? API_ERROR_CODES.AUTHORITY_OVERRIDE_REJECTED
+          : API_ERROR_CODES.UNKNOWN_FIELD,
+        message: isForbiddenAuthorityKey(key)
+          ? 'Client-supplied authority override field is rejected.'
+          : 'Unexpected field on paired run endpoint. Only "question" is accepted.',
+      };
+    }
+  }
+  if (!('question' in record)) {
+    return { ok: true, value: { question: null } };
+  }
+  const raw = record['question'];
+  if (typeof raw !== 'string') {
+    return {
+      ok: false,
+      code: API_ERROR_CODES.INVALID_REQUEST,
+      message: 'Question must be a string.',
+    };
+  }
+  const question = raw.trim();
+  if (question.length === 0) {
+    return {
+      ok: false,
+      code: API_ERROR_CODES.INVALID_REQUEST,
+      message: 'Question must not be empty.',
+    };
+  }
+  if (question.length > MAX_CUSTOM_QUESTION_LENGTH) {
+    return {
+      ok: false,
+      code: API_ERROR_CODES.INVALID_REQUEST,
+      message: `Question must be at most ${MAX_CUSTOM_QUESTION_LENGTH} characters.`,
+    };
+  }
+  if (NON_PRINTABLE_QUESTION_CHARS.test(question)) {
+    return {
+      ok: false,
+      code: API_ERROR_CODES.INVALID_REQUEST,
+      message: 'Question must contain printable characters only (no control characters).',
+    };
+  }
+  return { ok: true, value: { question } };
+}
+
 export function validateEmptyMutationPayload(body: unknown): StrictParseResult<Record<string, never>> {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     return {

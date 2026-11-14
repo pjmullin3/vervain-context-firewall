@@ -1,13 +1,13 @@
 /**
  * Responsibility: The demo's main screen. The stock Vervain DataMap runs full screen; two
  * additions sit on top of it: (1) a live leak check that replays one arm of a real paired run
- * on Gemini as DataMap activity, and (2) a receipt drawer with a ledger check and the measured
+ * on the configured model as DataMap activity, and (2) a receipt drawer with a ledger check and the measured
  * results from our own GPU run.
  * Trust boundary: Untrusted browser bundle; it only calls the existing public demo API.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ArmExecutionView, DemoStateResponse, LedgerVerificationResult } from '../../shared/contracts.js';
+import type { ArmExecutionView, DemoStateResponse, LedgerVerificationResult, PersonaId } from '../../shared/contracts.js';
 import { createOrSwitchPersonaSession, fetchDemoState, runPairedProofRequest, verifyLedgerChainRequest } from '../api.js';
 import { BrandLogo } from '../datamap/BrandLogo.jsx';
 import { DataMap, type DataMapSource } from '../datamap/DataMap.jsx';
@@ -24,18 +24,76 @@ export const DISPLAY_NAMES: Record<string, string> = {
   'alder/renewal-playbook-v3': "Acme's renewal playbook",
   'beacon/strategy-note-v2': "Pied Piper's private strategy note",
 };
-const ASKING_ID = 'alder';
+/** The company the demo opens as. */
+const DEFAULT_ASKER: PersonaId = 'alder';
+/** Longest question the server accepts (it re-checks). */
+const MAX_QUESTION_LENGTH = 300;
 
-/** Display names for the replayed actors (the DataMap reads `name`; `model` keeps them ungrouped). Each says who acts. */
-const ACTORS: Record<string, string> = {
-  assistant: 'Acme Co. AI assistant',
-  search: 'Search tool',
-  gemini: modelLabels(null, null).node,
+/**
+ * Who is asking, and everything on screen that depends on it. The asker's own note is always
+ * allowed; the other company's note is the one the search bug drags in.
+ */
+export interface Cast {
+  asker: PersonaId;
+  /** Asker display name, e.g. "Acme Co.". */
+  name: string;
+  /** Other company display name. */
+  otherName: string;
+  /** Possessive short names used in sentences. */
+  own: string;
+  other: string;
+  ownFile: string;
+  otherFile: string;
+  ownNote: string;
+  otherNote: string;
+  /** Short name of the other company's file for headline sentences. */
+  otherShort: string;
+  answerFile: string;
+}
+
+const FILES: Record<PersonaId, string> = {
+  alder: '/Acme Co./renewal-playbook.md',
+  beacon: '/Pied Piper/private-strategy-note.md',
+};
+const POSSESSIVE: Record<PersonaId, string> = { alder: "Acme's", beacon: "Pied Piper's" };
+const ANSWER_FILES: Record<PersonaId, string> = {
+  alder: '/Answers/answer-to-acme.md',
+  beacon: '/Answers/answer-to-pied-piper.md',
+};
+const SHORT_NOTE: Record<PersonaId, string> = {
+  alder: "Acme's renewal playbook",
+  beacon: "Pied Piper's private note",
+};
+const NOTE_IDS: Record<PersonaId, string> = {
+  alder: 'alder/renewal-playbook-v3',
+  beacon: 'beacon/strategy-note-v2',
 };
 
-const ACME_FILE = '/Acme Co./renewal-playbook.md';
-const PIED_PIPER_FILE = '/Pied Piper/private-strategy-note.md';
-const ANSWER_FILE = '/Answers/answer-to-acme.md';
+export function castFor(asker: PersonaId): Cast {
+  const other: PersonaId = asker === 'alder' ? 'beacon' : 'alder';
+  return {
+    asker,
+    name: DISPLAY_NAMES[asker] ?? asker,
+    otherName: DISPLAY_NAMES[other] ?? other,
+    own: POSSESSIVE[asker],
+    other: POSSESSIVE[other],
+    ownFile: FILES[asker],
+    otherFile: FILES[other],
+    ownNote: DISPLAY_NAMES[NOTE_IDS[asker]] ?? NOTE_IDS[asker],
+    otherNote: DISPLAY_NAMES[NOTE_IDS[other]] ?? NOTE_IDS[other],
+    otherShort: SHORT_NOTE[other],
+    answerFile: ANSWER_FILES[asker],
+  };
+}
+
+/** Display names for the replayed actors (the DataMap reads `name`; `model` keeps them ungrouped). Each says who acts. */
+function actorsFor(cast: Cast, modelNode: string): Record<string, string> {
+  return {
+    assistant: `${cast.name} AI assistant`,
+    search: 'Search tool',
+    gemini: modelNode,
+  };
+}
 const PENDING = 'in_progress_observed';
 const client = 'vervain-demo';
 /** One replayed step every STEP ms, so branches spawn one by one. */
@@ -59,33 +117,36 @@ export function receiptPath(receiptId: string): string {
 }
 
 /** Steps that do not depend on the AI call: they start the moment Run is pressed. */
-export function requestObservations(t0: number): Observation[] {
+export function requestObservations(cast: Cast, t0: number): Observation[] {
   return timed(
     [
       { agent: 'assistant', kind: 'session_start', client },
       { agent: 'assistant', kind: 'user_prompt', client },
       { agent: 'search', kind: 'subagent_start', parent: 'assistant', client },
-      { agent: 'search', kind: 'file_read', op: 'read', path: ACME_FILE, status: PENDING, parent: 'assistant', client },
-      { agent: 'search', kind: 'file_read', op: 'read', path: PIED_PIPER_FILE, status: PENDING, parent: 'assistant', client },
+      { agent: 'search', kind: 'file_read', op: 'read', path: cast.ownFile, status: PENDING, parent: 'assistant', client },
+      { agent: 'search', kind: 'file_read', op: 'read', path: cast.otherFile, status: PENDING, parent: 'assistant', client },
     ],
     t0,
   );
 }
 
 /** The steps that follow from one arm of the real paired run, starting at `t1`. */
-export function resultObservations(arm: ArmExecutionView, t1: number): Observation[] {
+export function resultObservations(cast: Cast, arm: ArmExecutionView, t1: number): Observation[] {
   const leaked = arm.foreignChunkEnteredEnvelope;
+  const called = modelCalled(arm);
   const steps: Step[] = [
-    { agent: 'search', kind: 'file_read', op: 'read', path: ACME_FILE, status: 'completed', parent: 'assistant', client },
-    { agent: 'search', kind: 'file_read', op: 'read', path: PIED_PIPER_FILE, status: leaked ? 'completed' : 'denied', parent: 'assistant', client },
-    { agent: 'gemini', kind: 'subagent_start', parent: 'assistant', client },
-    { agent: 'gemini', kind: 'file_read', op: 'read', path: ACME_FILE, status: 'completed', parent: 'assistant', client },
+    { agent: 'search', kind: 'file_read', op: 'read', path: cast.ownFile, status: called ? 'completed' : 'denied', parent: 'assistant', client },
+    { agent: 'search', kind: 'file_read', op: 'read', path: cast.otherFile, status: leaked ? 'completed' : 'denied', parent: 'assistant', client },
   ];
-  if (leaked) steps.push({ agent: 'gemini', kind: 'file_read', op: 'read', path: PIED_PIPER_FILE, status: 'completed', parent: 'assistant', client });
-  steps.push(
-    { agent: 'gemini', kind: 'file_write', op: 'write', path: ANSWER_FILE, status: answerReleased(arm) ? 'completed' : 'failed', parent: 'assistant', client },
-    { agent: 'assistant', kind: 'file_write', op: 'write', path: receiptPath(arm.receiptId), status: 'completed', client },
-  );
+  if (called) {
+    steps.push(
+      { agent: 'gemini', kind: 'subagent_start', parent: 'assistant', client },
+      { agent: 'gemini', kind: 'file_read', op: 'read', path: cast.ownFile, status: 'completed', parent: 'assistant', client },
+    );
+    if (leaked) steps.push({ agent: 'gemini', kind: 'file_read', op: 'read', path: cast.otherFile, status: 'completed', parent: 'assistant', client });
+    steps.push({ agent: 'gemini', kind: 'file_write', op: 'write', path: cast.answerFile, status: answerReleased(arm) ? 'completed' : 'failed', parent: 'assistant', client });
+  }
+  steps.push({ agent: 'assistant', kind: 'file_write', op: 'write', path: receiptPath(arm.receiptId), status: 'completed', client });
   return timed(steps, t1);
 }
 
@@ -93,26 +154,33 @@ export function resultObservations(arm: ArmExecutionView, t1: number): Observati
 export const resultStart = (t0: number) => t0 + REQUEST_STEPS * STEP;
 
 /** A full replay of one arm: the request steps, then the result steps. */
-export function armObservations(arm: ArmExecutionView, t0: number): Observation[] {
-  return [...requestObservations(t0), ...resultObservations(arm, resultStart(t0))];
+export function armObservations(cast: Cast, arm: ArmExecutionView, t0: number): Observation[] {
+  return [...requestObservations(cast, t0), ...resultObservations(cast, arm, resultStart(t0))];
 }
 
-/** Card labels for one arm: the Pied Piper note says BLOCKED or LEAKED once that step plays; a rejected answer says so. */
-export function armTags(arm: ArmExecutionView, observations: Observation[], modelShort = 'Gemini'): CardTag[] {
+/** Card labels for one arm: the other company's note says BLOCKED or LEAKED once that step plays; a rejected answer says so. */
+export function armTags(cast: Cast, arm: ArmExecutionView, observations: Observation[], modelShort = 'Gemini'): CardTag[] {
   const leaked = arm.foreignChunkEnteredEnvelope;
   const at = (agent: string, path: string) => observations.find((o) => o.agent === agent && o.path === path && o.status !== PENDING)?.at;
   const tags: CardTag[] = [];
-  const blockedOrLeakedAt = leaked ? at('gemini', PIED_PIPER_FILE) : at('search', PIED_PIPER_FILE);
+  const blockedOrLeakedAt = leaked ? at('gemini', cast.otherFile) : at('search', cast.otherFile);
   if (blockedOrLeakedAt !== undefined) {
     tags.push(
       leaked
-        ? { path: PIED_PIPER_FILE, from: blockedOrLeakedAt, text: `LEAKED into ${modelShort}`, tone: 'leaked' }
-        : { path: PIED_PIPER_FILE, from: blockedOrLeakedAt, text: 'BLOCKED by Vervain', tone: 'blocked' },
+        ? { path: cast.otherFile, from: blockedOrLeakedAt, text: `LEAKED into ${modelShort}`, tone: 'leaked' }
+        : { path: cast.otherFile, from: blockedOrLeakedAt, text: 'BLOCKED by Vervain', tone: 'blocked' },
     );
   }
-  const answerAt = at('gemini', ANSWER_FILE);
-  if (!answerReleased(arm) && answerAt !== undefined) tags.push({ path: ANSWER_FILE, from: answerAt, text: 'No usable answer', tone: 'neutral' });
+  const answerAt = at('gemini', cast.answerFile);
+  if (!answerReleased(arm) && answerAt !== undefined) tags.push({ path: cast.answerFile, from: answerAt, text: 'No usable answer', tone: 'neutral' });
+  const ownHeldAt = modelCalled(arm) ? undefined : at('search', cast.ownFile);
+  if (ownHeldAt !== undefined) tags.push({ path: cast.ownFile, from: ownHeldAt, text: 'Restricted: not sent to AI', tone: 'neutral' });
   return tags;
+}
+
+/** Whether the model was called at all (Vervain skips it when no file is allowed through). */
+function modelCalled(arm: ArmExecutionView): boolean {
+  return arm.providerRuntime.callAttempted;
 }
 
 /** Acme got an answer unless Vervain held it back or the model call failed. */
@@ -121,8 +189,12 @@ function answerReleased(arm: ArmExecutionView): boolean {
 }
 
 /** The receipt's "Released" line, worded for why no answer went out. */
-export function releasedText(arm: ArmExecutionView): string {
-  if (answerReleased(arm)) return 'Answer sent to Acme';
+export function releasedText(cast: Cast, arm: ArmExecutionView): string {
+  if (answerReleased(arm)) return `Answer sent to ${cast.name}`;
+  if (!modelCalled(arm)) return 'No answer (no file was allowed to reach the AI, so it was not called)';
+  if (arm.releaseReason === 'planted_value_detected') {
+    return 'No answer sent (it contained the secret project code, so Vervain held it back)';
+  }
   if (arm.providerRuntime.outcome === 'invalid_response' || arm.releaseDecision === 'withheld') {
     return 'No usable answer (model output rejected by format check)';
   }
@@ -134,16 +206,16 @@ function idleObservations(t0: number): Observation[] {
 }
 
 /** A DataMap source with the same {label, clock, interval, poll} contract as the stock harness. Reads observations from a ref so the map keeps its layout while the result streams in. */
-function replaySource(observations: { current: Observation[] }, t0: number, modelNode: string): DataMapSource {
+function replaySource(cast: Cast, observations: { current: Observation[] }, t0: number, modelNode: string): DataMapSource {
+  const actors = actorsFor(cast, modelNode);
   return {
-    label: 'Acme Co.',
+    label: cast.name,
     clock: () => Date.now(),
     interval: 300,
     async poll() {
       const snap = snapshotAt({ observations: observations.current, t0, span: 12000, title: 'Leak check' }, Date.now());
       for (const session of snap.sessions) {
-        const id = String(session.id);
-        const name = id === 'gemini' ? modelNode : (ACTORS[id] ?? id);
+        const name = actors[String(session.id)] ?? String(session.id);
         session.name = name;
         session.model = name;
       }
@@ -162,15 +234,21 @@ export function LeakCheck() {
   const [vervainOn, setVervainOn] = useState(true);
   const [startedAt, setStartedAt] = useState(() => Date.now());
   const [running, setRunning] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [asker, setAsker] = useState<PersonaId>(DEFAULT_ASKER);
+  const [question, setQuestion] = useState('');
+  /** The question the shown result answered (null = the built-in question). */
+  const [askedQuestion, setAskedQuestion] = useState<string | null>(null);
+  const cast = useMemo(() => castFor(asker), [asker]);
 
   const observations = useRef<Observation[]>(idleObservations(startedAt));
   const tags = useRef<CardTag[]>([]);
 
   useEffect(() => {
-    // The demo always asks as Acme: open (or reuse) Acme's synthetic session first.
-    createOrSwitchPersonaSession(ASKING_ID)
+    // The demo opens as Acme: open (or reuse) Acme's synthetic session first.
+    createOrSwitchPersonaSession(DEFAULT_ASKER)
       .then(() => fetchDemoState())
       .then(setDemo)
       .catch(() => setDemo(null));
@@ -192,7 +270,7 @@ export function LeakCheck() {
   const isLive = mode === 'live';
   const labels = modelLabels(demo?.runtime ?? null, mode, arm?.providerRuntime.model);
   const model = arm?.providerRuntime.model ?? demo?.runtime.configuredModel ?? labels.short;
-  const source = useMemo(() => replaySource(observations, startedAt, labels.node), [startedAt, labels.node]);
+  const source = useMemo(() => replaySource(cast, observations, startedAt, labels.node), [cast, startedAt, labels.node]);
   const cardTag = useCallback((node: { kind: string; meta?: Record<string, unknown> }) => {
     if (node.kind !== 'file') return null;
     const now = Date.now();
@@ -205,16 +283,18 @@ export function LeakCheck() {
     setRunning(true);
     setError(null);
     setPaired(null);
+    const asked = question.trim();
     const t0 = Date.now();
-    observations.current = requestObservations(t0);
+    observations.current = requestObservations(cast, t0);
     tags.current = [];
     setStartedAt(t0);
     try {
-      const result = await runPairedProofRequest();
+      const result = await runPairedProofRequest(asked);
       const runArm = armOf(result.pairedRun, vervainOn);
       const t1 = Math.max(Date.now() + STEP, resultStart(t0));
-      observations.current = [...requestObservations(t0), ...resultObservations(runArm, t1)];
-      tags.current = armTags(runArm, observations.current, labels.short);
+      observations.current = [...requestObservations(cast, t0), ...resultObservations(cast, runArm, t1)];
+      tags.current = armTags(cast, runArm, observations.current, labels.short);
+      setAskedQuestion(asked.length > 0 ? asked : null);
       setPaired(result.pairedRun);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The run failed.');
@@ -223,13 +303,36 @@ export function LeakCheck() {
     }
   }
 
+  /** Switches who is asking through the existing server session switch, then clears the old result. */
+  async function switchAsker(next: PersonaId) {
+    if (next === asker || running || switching) return;
+    setSwitching(true);
+    setError(null);
+    try {
+      await createOrSwitchPersonaSession(next);
+      setDemo(await fetchDemoState());
+      const t0 = Date.now();
+      observations.current = idleObservations(t0);
+      tags.current = [];
+      setPaired(null);
+      setAskedQuestion(null);
+      setDrawerOpen(false);
+      setAsker(next);
+      setStartedAt(t0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not switch who is asking.');
+    } finally {
+      setSwitching(false);
+    }
+  }
+
   /** Replays one arm of the last result from its first step, re-seeding the clock to now. */
   function replay(on: boolean) {
     if (!paired || running) return;
     const t0 = Date.now();
     const replayArm = armOf(paired, on);
-    observations.current = armObservations(replayArm, t0);
-    tags.current = armTags(replayArm, observations.current, labels.short);
+    observations.current = armObservations(cast, replayArm, t0);
+    tags.current = armTags(cast, replayArm, observations.current, labels.short);
     setStartedAt(t0);
   }
 
@@ -241,11 +344,20 @@ export function LeakCheck() {
 
   const sentence = arm
     ? vervainOn
-      ? "BLOCKED. Pied Piper's private note never reached the AI. Acme still got its answer."
-      : "LEAKED. Pied Piper's private note went straight into the AI."
+      ? `BLOCKED. ${cast.otherShort} never reached the AI. ${
+          answerReleased(arm)
+            ? `${cast.name} still got its answer.`
+            : modelCalled(arm)
+              ? `${releasedText(cast, arm)}.`
+              : `${cast.own} own note is restricted too, so the AI was not called.`
+        }`
+      : `LEAKED. ${cast.otherShort} went straight into the AI.`
     : running
-      ? `Acme asks. The search bug grabs Pied Piper's private note too. Asking ${labels.short}...`
-      : "Acme Co. and Pied Piper share one AI assistant. Vervain controls what the agent reads before it reasons.";
+      ? `${cast.name} asks. The search bug grabs ${cast.otherShort} too. Asking ${labels.short}...`
+      : `Acme Co. and Pied Piper share one AI assistant. Vervain controls what the agent reads before it reasons.`;
+
+  const answerText = arm && answerReleased(arm) ? arm.releasedAnswerText : null;
+  const placeholder = asker === 'alder' ? "e.g. What is Pied Piper's project code?" : "e.g. What is Acme's renewal discount?";
 
   return (
     <div className="lc-root">
@@ -257,6 +369,22 @@ export function LeakCheck() {
         <span className={`lc-chip ${isLive ? 'is-live' : 'is-mock'}`} title={`Model: ${model}`}>
           {labels.chip}
         </span>
+        <div className="lc-asker" role="radiogroup" aria-label="Asking as">
+          <span className="lc-asker-label">Asking as:</span>
+          {(['alder', 'beacon'] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={asker === id}
+              className={`lc-seg ${asker === id ? 'is-current' : ''}`}
+              onClick={() => void switchAsker(id)}
+              disabled={running || switching}
+            >
+              {DISPLAY_NAMES[id]}
+            </button>
+          ))}
+        </div>
         <div className="lc-actions">
           <button
             type="button"
@@ -268,9 +396,32 @@ export function LeakCheck() {
             <span className="lc-knob" aria-hidden="true" />
             Vervain {vervainOn ? 'ON' : 'OFF'}
           </button>
-          <button type="button" className="lc-run" onClick={run} disabled={running}>
-            {running ? `Asking ${labels.short}...` : "Run Acme's request"}
-          </button>
+          <form
+            className="lc-ask"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!running && !switching) void run();
+            }}
+          >
+            <label className="lc-ask-label" htmlFor="lc-question">
+              Ask as {cast.name}
+            </label>
+            <input
+              id="lc-question"
+              className="lc-input"
+              type="text"
+              value={question}
+              maxLength={MAX_QUESTION_LENGTH}
+              placeholder={placeholder}
+              onChange={(e) => setQuestion(e.target.value)}
+              disabled={running || switching}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button type="submit" className="lc-run" disabled={running || switching}>
+              {running ? `Asking ${labels.short}...` : `Run ${cast.own} request`}
+            </button>
+          </form>
           <button type="button" className="lc-ghost" onClick={() => replay(vervainOn)} disabled={!paired || running}>
             Replay
           </button>
@@ -285,7 +436,7 @@ export function LeakCheck() {
 
       <div className="lc-map">
         <DataMap
-          key={startedAt}
+          key={`${asker}-${startedAt}`}
           source={source}
           initialSettings={{ physics: true }}
           cardTag={cardTag}
@@ -303,16 +454,28 @@ export function LeakCheck() {
         <p className={`lc-sentence ${arm ? (vervainOn ? 'is-on' : 'is-off') : ''}`} role="status">
           {error ? `Run failed: ${error}` : sentence}
         </p>
+        {arm && !error ? (
+          <section className={`lc-answer ${vervainOn ? 'is-on' : 'is-off'}`} aria-label="Question and answer">
+            <p className="lc-q">
+              <span>{cast.name} asked</span>
+              {askedQuestion ?? arm.frozenQueryText}
+            </p>
+            <p className="lc-a">
+              <span>Vervain {vervainOn ? 'ON' : 'OFF'} · {labels.short} answered</span>
+              {answerText !== null ? answerText : `${releasedText(cast, arm)}.`}
+            </p>
+          </section>
+        ) : null}
       </div>
 
       {drawerOpen && paired && arm ? (
-        <ReceiptDrawer arm={arm} vervainOn={vervainOn} onClose={() => setDrawerOpen(false)} />
+        <ReceiptDrawer cast={cast} arm={arm} vervainOn={vervainOn} onClose={() => setDrawerOpen(false)} />
       ) : null}
     </div>
   );
 }
 
-function ReceiptDrawer({ arm, vervainOn, onClose }: { arm: ArmExecutionView; vervainOn: boolean; onClose: () => void }) {
+function ReceiptDrawer({ cast, arm, vervainOn, onClose }: { cast: Cast; arm: ArmExecutionView; vervainOn: boolean; onClose: () => void }) {
   const [check, setCheck] = useState<LedgerVerificationResult | null>(null);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
@@ -329,8 +492,12 @@ function ReceiptDrawer({ arm, vervainOn, onClose }: { arm: ArmExecutionView; ver
     }
   }
 
-  const seen = arm.foreignChunkEnteredEnvelope ? "Acme's renewal playbook and Pied Piper's private note" : "Acme's renewal playbook only";
-  const released = releasedText(arm);
+  const seen = !modelCalled(arm)
+    ? 'Nothing (the AI was not called)'
+    : arm.foreignChunkEnteredEnvelope
+      ? `${cast.ownNote} and ${cast.otherNote}`
+      : `${cast.ownNote} only`;
+  const released = releasedText(cast, arm);
 
   return (
     <aside className="lc-drawer" aria-label="Receipt">
@@ -346,7 +513,7 @@ function ReceiptDrawer({ arm, vervainOn, onClose }: { arm: ArmExecutionView; ver
       <dl className="lc-facts">
         <dt>Search found</dt>
         <dd>
-          {arm.counts.retrieved} files (Acme's renewal playbook, Pied Piper's private strategy note)
+          {arm.counts.retrieved} files ({cast.ownNote}, {cast.otherNote})
         </dd>
         <dt>The AI saw</dt>
         <dd>{seen}</dd>
