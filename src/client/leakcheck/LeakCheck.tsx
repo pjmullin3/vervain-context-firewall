@@ -359,6 +359,10 @@ export function LeakCheck() {
   const answerText = arm && answerReleased(arm) ? arm.releasedAnswerText : null;
   const placeholder = asker === 'alder' ? "e.g. What is Pied Piper's project code?" : "e.g. What is Acme's renewal discount?";
 
+  const otherDemo = window.location.hostname.includes('h200')
+    ? { href: 'https://demo.vervain.io', label: 'Also live on Gemini 4 Carbon' }
+    : { href: 'https://h200.vervain.io', label: 'Run it on our H200 (Gemma 3)' };
+
   return (
     <div className="lc-root">
       <header className="lc-bar">
@@ -369,6 +373,9 @@ export function LeakCheck() {
         <span className={`lc-chip ${isLive ? 'is-live' : 'is-mock'}`} title={`Model: ${model}`}>
           {labels.chip}
         </span>
+        <a className="lc-crosslink" href={otherDemo.href}>
+          {otherDemo.label}
+        </a>
         <div className="lc-asker" role="radiogroup" aria-label="Asking as">
           <span className="lc-asker-label">Asking as:</span>
           {(['alder', 'beacon'] as const).map((id) => (
