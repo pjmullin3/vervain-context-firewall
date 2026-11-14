@@ -1,0 +1,21 @@
+{
+  "name": "@vervain/evidence-verifier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent TypeScript/Node RFC 8785 JCS canonicalizer, strict parser, sanitizer, and verifier consumer for Vervain inference-proof.v1 and verifier-result.v1 artifacts.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "test": "node --test tests/*.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

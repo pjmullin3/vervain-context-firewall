@@ -1,0 +1,2 @@
+diff --git a/vllm/attention.py b/vllm/attention.py
++verify_block_scopes()

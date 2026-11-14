@@ -1,0 +1,843 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vervain.security/schemas/verification/inference-proof.v1.schema.json",
+  "title": "Vervain Inference Proof Artifact v1",
+  "description": "Strict schema for self-hosted vLLM scoped KV firewall proof artifacts consumed by the independent Carbon 3 evidence verifier.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_status",
+    "run_id",
+    "started_at",
+    "finished_at",
+    "source",
+    "runtime_manifest",
+    "trust_boundary",
+    "scenario",
+    "paired_runs",
+    "scope_decisions",
+    "block_lifecycle",
+    "backend_dispatch",
+    "correctness",
+    "performance",
+    "receipt_chain",
+    "exclusions",
+    "artifact_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "evidence_status": {
+      "type": "string",
+      "enum": ["live", "recorded", "local_only", "incomplete"]
+    },
+    "run_id": { "$ref": "#/$defs/opaqueId" },
+    "started_at": { "$ref": "#/$defs/utcIso" },
+    "finished_at": { "$ref": "#/$defs/utcIso" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_sha",
+        "git_dirty",
+        "vllm_sha",
+        "patch_sha256",
+        "patch_path",
+        "loaded_modules",
+        "trace_sha256"
+      ],
+      "properties": {
+        "git_sha": { "$ref": "#/$defs/gitSha" },
+        "git_dirty": { "type": "boolean" },
+        "vllm_sha": { "$ref": "#/$defs/gitSha" },
+        "patch_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "patch_path": { "type": ["string", "null"], "minLength": 1, "maxLength": 256 },
+        "loaded_modules": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["module_name", "file_path", "file_sha256"],
+            "properties": {
+              "module_name": { "$ref": "#/$defs/shortLabel" },
+              "file_path": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "file_sha256": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        },
+        "trace_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "runtime_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gpu_model",
+        "gpu_count",
+        "gpu_uuids_sha256",
+        "topology",
+        "driver_version",
+        "cuda_version",
+        "torch_version",
+        "triton_version",
+        "vllm_version",
+        "flash_attn_version",
+        "flashinfer_version",
+        "python_version",
+        "model_id",
+        "model_revision",
+        "tokenizer_revision",
+        "configured_backend",
+        "selected_runtime_backend",
+        "kv_dtype",
+        "block_size",
+        "prefix_caching",
+        "graph_mode",
+        "tp_size",
+        "cp_size",
+        "speculation",
+        "offload",
+        "swap",
+        "kv_connector",
+        "launch_command_sanitized",
+        "host_id_digest"
+      ],
+      "properties": {
+        "gpu_model": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "gpu_count": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "gpu_uuids_sha256": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/sha256" }
+        },
+        "topology": { "type": "string", "pattern": "^(LOCAL_CPU|TP[1-9][0-9]*(_CP[1-9][0-9]*)?)$" },
+        "driver_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "cuda_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "torch_version": { "$ref": "#/$defs/shortLabel" },
+        "triton_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "vllm_version": { "$ref": "#/$defs/shortLabel" },
+        "flash_attn_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "flashinfer_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "python_version": { "$ref": "#/$defs/shortLabel" },
+        "model_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "model_revision": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "tokenizer_revision": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "configured_backend": { "$ref": "#/$defs/shortLabel" },
+        "selected_runtime_backend": { "$ref": "#/$defs/shortLabel" },
+        "kv_dtype": { "type": "string", "enum": ["auto", "fp16", "bf16", "fp8", "fp8_e4m3", "fp8_e5m2"] },
+        "block_size": { "type": "integer", "enum": [1, 8, 16, 32, 64, 128, 256] },
+        "prefix_caching": { "type": "boolean" },
+        "graph_mode": { "type": "string", "enum": ["eager", "cudagraph_disabled", "cudagraph_full", "cudagraph_piecewise"] },
+        "tp_size": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "cp_size": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "speculation": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "offload": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "swap": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "kv_connector": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "launch_command_sanitized": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "host_id_digest": { "$ref": "#/$defs/sha256" },
+        "nccl_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "nccl_transport_digest": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "trust_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "guard_mode",
+        "public_client_can_supply_scope",
+        "scope_envelope_integrity",
+        "mediated_boundaries",
+        "claim_scope"
+      ],
+      "properties": {
+        "guard_mode": { "type": "string", "enum": ["strict-host", "strict-gpu", "fused-triton"] },
+        "public_client_can_supply_scope": { "type": "boolean" },
+        "scope_envelope_integrity": {
+          "type": "string",
+          "enum": ["hmac_sha256_server_side", "mtls_private_transport", "in_process_trusted_gateway"]
+        },
+        "mediated_boundaries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": { "$ref": "#/$defs/shortLabel" }
+        },
+        "claim_scope": { "$ref": "#/$defs/boundedText" }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "synthetic_only",
+        "injection_type",
+        "tenants",
+        "foreign_block_alias",
+        "foreign_owner_scope",
+        "victim_request_scope"
+      ],
+      "properties": {
+        "scenario_id": { "$ref": "#/$defs/opaqueId" },
+        "synthetic_only": { "type": "boolean" },
+        "injection_type": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "tenants": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tenant_alias", "scope_id"],
+            "properties": {
+              "tenant_alias": { "$ref": "#/$defs/shortLabel" },
+              "scope_id": { "$ref": "#/$defs/scopeRef" }
+            }
+          }
+        },
+        "foreign_block_alias": { "$ref": "#/$defs/opaqueId" },
+        "foreign_owner_scope": { "$ref": "#/$defs/scopeRef" },
+        "victim_request_scope": { "$ref": "#/$defs/scopeRef" },
+        "placeholder_notice": { "type": ["string", "null"], "maxLength": 128 }
+      }
+    },
+    "paired_runs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_clean",
+        "native_fault_injected",
+        "vervain_clean",
+        "vervain_fault_injected",
+        "vervain_allowed_after_fault"
+      ],
+      "properties": {
+        "native_clean": { "$ref": "#/$defs/pairedArmRecord" },
+        "native_fault_injected": { "$ref": "#/$defs/pairedArmRecord" },
+        "vervain_clean": { "$ref": "#/$defs/pairedArmRecord" },
+        "vervain_fault_injected": { "$ref": "#/$defs/pairedArmRecord" },
+        "vervain_allowed_after_fault": { "$ref": "#/$defs/pairedArmRecord" }
+      }
+    },
+    "scope_decisions": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/scopeDecision" }
+    },
+    "block_lifecycle": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/blockRecord" }
+    },
+    "backend_dispatch": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/dispatchSpan" }
+    },
+    "correctness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed",
+        "config_digest",
+        "equivalence_tolerance",
+        "measured_max_abs_delta",
+        "clean_equivalence_passed",
+        "planted_value_influence_probe",
+        "allowed_after_fault_completed_after_violation",
+        "violating_request_id",
+        "allowed_after_fault_request_id"
+      ],
+      "properties": {
+        "seed": { "$ref": "#/$defs/nonNegInt" },
+        "config_digest": { "$ref": "#/$defs/sha256" },
+        "equivalence_tolerance": { "type": "number", "minimum": 0, "maximum": 1.0 },
+        "measured_max_abs_delta": { "$ref": "#/$defs/nonNegFinite" },
+        "clean_equivalence_passed": { "type": "boolean" },
+        "planted_value_influence_probe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "probe_id",
+            "planted_value_sha256",
+            "raw_planted_value_omitted",
+            "native_fault_injected_influence_score",
+            "baseline_nonzero_influence",
+            "vervain_fault_injected_influence_score",
+            "vervain_zero_or_blocked"
+          ],
+          "properties": {
+            "probe_id": { "$ref": "#/$defs/opaqueId" },
+            "planted_value_sha256": { "$ref": "#/$defs/sha256" },
+            "raw_planted_value_omitted": { "type": "boolean" },
+            "native_fault_injected_influence_score": { "$ref": "#/$defs/nonNegFinite" },
+            "baseline_nonzero_influence": { "type": "boolean" },
+            "vervain_fault_injected_influence_score": { "$ref": "#/$defs/nonNegFinite" },
+            "vervain_zero_or_blocked": { "type": "boolean" }
+          }
+        },
+        "allowed_after_fault_completed_after_violation": { "type": "boolean" },
+        "violating_request_id": { "$ref": "#/$defs/opaqueId" },
+        "allowed_after_fault_request_id": { "$ref": "#/$defs/opaqueId" }
+      }
+    },
+    "performance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "baseline_config",
+        "candidate_config",
+        "interleaved_order",
+        "startup_compile_ms",
+        "metrics"
+      ],
+      "properties": {
+        "baseline_config": { "$ref": "#/$defs/perfConfig" },
+        "candidate_config": { "$ref": "#/$defs/perfConfig" },
+        "interleaved_order": { "type": "boolean" },
+        "startup_compile_ms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["baseline", "candidate"],
+          "properties": {
+            "baseline": { "$ref": "#/$defs/nonNegFinite" },
+            "candidate": { "$ref": "#/$defs/nonNegFinite" }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ttft_ms",
+            "itl_ms",
+            "req_per_sec",
+            "tok_per_sec",
+            "peak_gpu_mem_mb",
+            "guard_us",
+            "mismatch_us"
+          ],
+          "properties": {
+            "ttft_ms": { "$ref": "#/$defs/metricSummary" },
+            "itl_ms": { "$ref": "#/$defs/metricSummary" },
+            "req_per_sec": { "$ref": "#/$defs/metricSummary" },
+            "tok_per_sec": { "$ref": "#/$defs/metricSummary" },
+            "peak_gpu_mem_mb": { "$ref": "#/$defs/metricSummary" },
+            "guard_us": { "$ref": "#/$defs/metricSummary" },
+            "mismatch_us": { "$ref": "#/$defs/metricSummary" }
+          }
+        }
+      }
+    },
+    "receipt_chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chain_algorithm", "genesis_sha256", "head_sha256", "event_count", "events"],
+      "properties": {
+        "chain_algorithm": { "const": "sha256" },
+        "genesis_sha256": { "$ref": "#/$defs/sha256" },
+        "head_sha256": { "$ref": "#/$defs/sha256" },
+        "event_count": { "$ref": "#/$defs/posInt" },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_index",
+              "run_id",
+              "request_id",
+              "event_type",
+              "recorded_at",
+              "prev_sha256",
+              "event_sha256",
+              "canonical_event_sha256"
+            ],
+            "properties": {
+              "event_index": { "$ref": "#/$defs/nonNegInt" },
+              "run_id": { "$ref": "#/$defs/opaqueId" },
+              "request_id": { "$ref": "#/$defs/opaqueId" },
+              "event_type": { "$ref": "#/$defs/shortLabel" },
+              "recorded_at": { "$ref": "#/$defs/utcIso" },
+              "prev_sha256": { "$ref": "#/$defs/sha256" },
+              "event_sha256": { "$ref": "#/$defs/sha256" },
+              "canonical_event_sha256": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unsupported_paths",
+        "unmediated_boundaries",
+        "limitations",
+        "synthetic_injection_disclosure"
+      ],
+      "properties": {
+        "unsupported_paths": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path_name", "status", "reason"],
+            "properties": {
+              "path_name": { "$ref": "#/$defs/shortLabel" },
+              "status": { "type": "string", "enum": ["disabled", "fail_closed", "not_claimed"] },
+              "reason": { "$ref": "#/$defs/boundedText" }
+            }
+          }
+        },
+        "unmediated_boundaries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/boundedText" }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/boundedText" }
+        },
+        "synthetic_injection_disclosure": { "$ref": "#/$defs/boundedText" }
+      }
+    },
+    "artifact_sha256": { "$ref": "#/$defs/sha256" },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "key_id",
+        "trust_root_id",
+        "signed_digest_sha256",
+        "signature_value",
+        "ephemeral_demo_only",
+        "signed_at"
+      ],
+      "properties": {
+        "algorithm": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "key_id": { "$ref": "#/$defs/opaqueId" },
+        "trust_root_id": { "$ref": "#/$defs/opaqueId" },
+        "signed_digest_sha256": { "$ref": "#/$defs/sha256" },
+        "signature_value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z0-9+/=_-]+$"
+        },
+        "ephemeral_demo_only": { "type": "boolean" },
+        "signed_at": { "$ref": "#/$defs/utcIso" }
+      }
+    },
+    "ui_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_status",
+        "foreign_block_stopped",
+        "clean_equivalence_passed",
+        "allowed_after_fault_completed",
+        "selected_runtime_backend",
+        "gpu_model",
+        "tp_size",
+        "ttft_delta_pct"
+      ],
+      "properties": {
+        "evidence_status": { "type": "string", "enum": ["live", "recorded", "local_only", "incomplete"] },
+        "foreign_block_stopped": { "type": "boolean" },
+        "clean_equivalence_passed": { "type": "boolean" },
+        "allowed_after_fault_completed": { "type": "boolean" },
+        "selected_runtime_backend": { "$ref": "#/$defs/shortLabel" },
+        "gpu_model": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "tp_size": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "ttft_delta_pct": { "type": ["number", "null"] }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "utcIso": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$",
+      "maxLength": 40
+    },
+    "opaqueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:/-]+$"
+    },
+    "shortLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "boundedText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "nonNegInt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "posInt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "nonNegFinite": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1e15
+    },
+    "finiteNum": {
+      "type": "number",
+      "minimum": -1e15,
+      "maximum": 1e15
+    },
+    "scopeRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(UNASSIGNED|PUBLIC|scope:[a-z0-9_-]{1,64}|[0-9a-f]{16,64})$"
+    },
+    "pairedArmRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arm_id",
+        "request_id",
+        "request_scope",
+        "policy_epoch",
+        "seed",
+        "config_digest",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "output_sha256",
+        "entered_attention_dispatch",
+        "foreign_block_injected",
+        "referenced_blocks",
+        "ranks"
+      ],
+      "properties": {
+        "arm_id": {
+          "type": "string",
+          "enum": [
+            "native_clean",
+            "native_fault_injected",
+            "vervain_clean",
+            "vervain_fault_injected",
+            "vervain_allowed_after_fault"
+          ]
+        },
+        "request_id": { "$ref": "#/$defs/opaqueId" },
+        "request_scope": { "$ref": "#/$defs/scopeRef" },
+        "policy_epoch": { "$ref": "#/$defs/nonNegInt" },
+        "seed": { "$ref": "#/$defs/nonNegInt" },
+        "config_digest": { "$ref": "#/$defs/sha256" },
+        "started_at": { "$ref": "#/$defs/utcIso" },
+        "finished_at": { "$ref": "#/$defs/utcIso" },
+        "outcome": {
+          "type": "string",
+          "enum": ["completed", "blocked_fail_closed", "contaminated_control_completed", "incomplete"]
+        },
+        "output_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "entered_attention_dispatch": { "type": "boolean" },
+        "foreign_block_injected": { "type": "boolean" },
+        "referenced_blocks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["physical_block_alias", "allocation_generation"],
+            "properties": {
+              "physical_block_alias": { "$ref": "#/$defs/opaqueId" },
+              "allocation_generation": { "type": ["integer", "null"], "maximum": 9007199254740991 }
+            }
+          }
+        },
+        "ranks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/rankRecord" }
+        }
+      }
+    },
+    "rankRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank_id",
+        "worker_id",
+        "gpu_uuid_sha256",
+        "loaded_patch_sha256",
+        "enforced_decision",
+        "decision_ref",
+        "entered_attention_dispatch"
+      ],
+      "properties": {
+        "rank_id": { "type": "integer", "minimum": 0, "maximum": 63 },
+        "worker_id": { "$ref": "#/$defs/opaqueId" },
+        "gpu_uuid_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "loaded_patch_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "enforced_decision": { "type": "string", "enum": ["allow", "deny_fail_closed", "unmediated_native"] },
+        "decision_ref": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "entered_attention_dispatch": { "type": "boolean" }
+      }
+    },
+    "scopeDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "request_id",
+        "rank_id",
+        "physical_block_alias",
+        "allocation_generation",
+        "request_scope",
+        "block_scope",
+        "policy_epoch",
+        "block_policy_epoch",
+        "decision_point",
+        "disposition",
+        "public_basis",
+        "token_equality_used_for_public",
+        "decided_at",
+        "envelope_issued_at",
+        "envelope_expires_at"
+      ],
+      "properties": {
+        "decision_id": { "$ref": "#/$defs/opaqueId" },
+        "request_id": { "$ref": "#/$defs/opaqueId" },
+        "rank_id": { "type": "integer", "minimum": 0, "maximum": 63 },
+        "physical_block_alias": { "$ref": "#/$defs/opaqueId" },
+        "allocation_generation": { "type": ["integer", "null"], "maximum": 9007199254740991 },
+        "request_scope": { "$ref": "#/$defs/scopeRef" },
+        "block_scope": { "$ref": "#/$defs/scopeRef" },
+        "policy_epoch": { "$ref": "#/$defs/nonNegInt" },
+        "block_policy_epoch": { "$ref": "#/$defs/nonNegInt" },
+        "decision_point": {
+          "type": "string",
+          "enum": ["scheduler_binding", "prefix_cache_lookup", "pre_attention_dispatch_guard", "gpu_device_guard"]
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "allow",
+            "deny_scope_mismatch",
+            "deny_stale_generation",
+            "deny_unassigned_block",
+            "deny_epoch_mismatch",
+            "deny_missing_rank",
+            "deny_unsupported_path",
+            "deny_malformed_table"
+          ]
+        },
+        "public_basis": {
+          "type": "string",
+          "enum": ["not_applicable", "owner_approved_immutable_prefix", "token_equality"]
+        },
+        "token_equality_used_for_public": { "type": "boolean" },
+        "decided_at": { "$ref": "#/$defs/utcIso" },
+        "envelope_issued_at": { "$ref": "#/$defs/utcIso" },
+        "envelope_expires_at": { "$ref": "#/$defs/utcIso" }
+      }
+    },
+    "blockRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_block_alias",
+        "allocation_generation",
+        "owner_scope",
+        "policy_epoch",
+        "state",
+        "cache_key_digest",
+        "rank_id",
+        "transitions"
+      ],
+      "properties": {
+        "physical_block_alias": { "$ref": "#/$defs/opaqueId" },
+        "allocation_generation": { "type": ["integer", "null"], "maximum": 9007199254740991 },
+        "owner_scope": { "$ref": "#/$defs/scopeRef" },
+        "policy_epoch": { "$ref": "#/$defs/nonNegInt" },
+        "state": { "type": "string", "enum": ["free", "reserved", "writing", "readable", "retired"] },
+        "cache_key_digest": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "rank_id": { "type": "integer", "minimum": 0, "maximum": 63 },
+        "transitions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "seq",
+              "from_state",
+              "to_state",
+              "allocation_generation",
+              "owner_scope",
+              "policy_epoch",
+              "transitioned_at",
+              "correlation_id"
+            ],
+            "properties": {
+              "seq": { "$ref": "#/$defs/nonNegInt" },
+              "from_state": { "type": "string", "enum": ["none", "free", "reserved", "writing", "readable", "retired"] },
+              "to_state": { "type": "string", "enum": ["free", "reserved", "writing", "readable", "retired"] },
+              "allocation_generation": { "type": ["integer", "null"], "maximum": 9007199254740991 },
+              "owner_scope": { "$ref": "#/$defs/scopeRef" },
+              "policy_epoch": { "$ref": "#/$defs/nonNegInt" },
+              "transitioned_at": { "$ref": "#/$defs/utcIso" },
+              "correlation_id": { "$ref": "#/$defs/opaqueId" }
+            }
+          }
+        }
+      }
+    },
+    "dispatchSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "span_id",
+        "request_id",
+        "rank_id",
+        "selected_backend",
+        "entered_attention_dispatch",
+        "blocked_before_dispatch",
+        "dispatched_at",
+        "checked_at",
+        "decision_ref"
+      ],
+      "properties": {
+        "span_id": { "$ref": "#/$defs/opaqueId" },
+        "request_id": { "$ref": "#/$defs/opaqueId" },
+        "rank_id": { "type": "integer", "minimum": 0, "maximum": 63 },
+        "selected_backend": { "$ref": "#/$defs/shortLabel" },
+        "entered_attention_dispatch": { "type": "boolean" },
+        "blocked_before_dispatch": { "type": "boolean" },
+        "dispatched_at": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$" },
+        "checked_at": { "$ref": "#/$defs/utcIso" },
+        "decision_ref": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "perfConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gpu_model",
+        "gpu_count",
+        "model_id",
+        "model_revision",
+        "selected_runtime_backend",
+        "kv_dtype",
+        "block_size",
+        "prefix_caching",
+        "graph_mode",
+        "tp_size",
+        "prompt_tokens",
+        "output_tokens",
+        "concurrency",
+        "warmup_count",
+        "sample_count"
+      ],
+      "properties": {
+        "gpu_model": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "gpu_count": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "model_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "model_revision": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "selected_runtime_backend": { "$ref": "#/$defs/shortLabel" },
+        "kv_dtype": { "type": "string", "enum": ["auto", "fp16", "bf16", "fp8", "fp8_e4m3", "fp8_e5m2"] },
+        "block_size": { "type": "integer", "enum": [1, 8, 16, 32, 64, 128, 256] },
+        "prefix_caching": { "type": "boolean" },
+        "graph_mode": { "type": "string", "enum": ["eager", "cudagraph_disabled", "cudagraph_full", "cudagraph_piecewise"] },
+        "tp_size": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "prompt_tokens": { "$ref": "#/$defs/posInt" },
+        "output_tokens": { "$ref": "#/$defs/posInt" },
+        "concurrency": { "$ref": "#/$defs/posInt" },
+        "warmup_count": { "$ref": "#/$defs/nonNegInt" },
+        "sample_count": { "$ref": "#/$defs/nonNegInt" }
+      }
+    },
+    "metricSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "p50",
+        "p95",
+        "abs_baseline",
+        "abs_candidate",
+        "delta_abs",
+        "delta_pct",
+        "denominator",
+        "unit",
+        "sample_count",
+        "warmup_count"
+      ],
+      "properties": {
+        "p50": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["baseline", "candidate"],
+          "properties": {
+            "baseline": { "type": ["number", "string", "null"] },
+            "candidate": { "type": ["number", "string", "null"] }
+          }
+        },
+        "p95": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["baseline", "candidate"],
+          "properties": {
+            "baseline": { "type": ["number", "string", "null"] },
+            "candidate": { "type": ["number", "string", "null"] }
+          }
+        },
+        "abs_baseline": { "type": ["number", "string", "null"] },
+        "abs_candidate": { "type": ["number", "string", "null"] },
+        "delta_abs": { "type": ["number", "string", "null"] },
+        "delta_pct": { "type": ["number", "string", "null"] },
+        "denominator": { "type": ["number", "string", "null"] },
+        "unit": { "type": "string", "enum": ["ms", "us", "req/s", "tok/s", "MB"] },
+        "sample_count": { "$ref": "#/$defs/nonNegInt" },
+        "warmup_count": { "$ref": "#/$defs/nonNegInt" }
+      }
+    }
+  }
+}

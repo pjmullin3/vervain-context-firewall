@@ -1,0 +1,343 @@
+{
+  "schema_version": "corpus-expectations.v1",
+  "total_json_fixtures": 35,
+  "adversarial_count": 31,
+  "run_dirs": [
+    {
+      "dir": "run_dirs/valid_h200_tp8_run",
+      "expected_verdict": "PASS",
+      "expected_reason_code": "PASS_VERIFIED"
+    },
+    {
+      "dir": "run_dirs/tampered_patch_run",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PATCH_DIGEST_MISMATCH"
+    },
+    {
+      "dir": "run_dirs/missing_spans_incomplete_run",
+      "expected_verdict": "NO VERDICT",
+      "expected_reason_code": "NV_MISSING_JOIN_EVIDENCE"
+    },
+    {
+      "dir": "run_dirs/shadow_file_run",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_RUN_DIR_AMBIGUOUS_FILE"
+    },
+    {
+      "dir": "run_dirs/rank_disagreement_tp8_run",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_BACKEND_INTENT_MISMATCH"
+    },
+    {
+      "dir": "run_dirs/receipt_digest_mismatch_run",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_COMMAND_RECEIPT_INVALID"
+    },
+    {
+      "dir": "run_dirs/leaked_secret_log_run",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_SECRET_LEAK_KEY_OR_TOKEN"
+    }
+  ],
+  "json_fixtures": [
+    {
+      "file": "valid_h200_tp1.json",
+      "expected_verdict": "PASS",
+      "expected_reason_code": "PASS_VERIFIED"
+    },
+    {
+      "file": "valid_h200_tp8.json",
+      "expected_verdict": "PASS",
+      "expected_reason_code": "PASS_VERIFIED"
+    },
+    {
+      "file": "local_only.json",
+      "expected_verdict": "NO VERDICT",
+      "expected_reason_code": "NV_STATUS_LOCAL_ONLY"
+    },
+    {
+      "file": "incomplete.json",
+      "expected_verdict": "NO VERDICT",
+      "expected_reason_code": "NV_STATUS_INCOMPLETE"
+    },
+    {
+      "file": "adversarial/mut_one_byte_digest.json",
+      "case_id": "mut_one_byte_digest",
+      "campaign": "digest",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_DIGEST_MISMATCH",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_untrusted_signature.json",
+      "case_id": "mut_untrusted_signature",
+      "campaign": "signature",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_SIG_UNTRUSTED_KEY",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_copied_signature.json",
+      "case_id": "mut_copied_signature",
+      "campaign": "signature",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_SIG_REPLAY_OR_COPIED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_missing_signature.json",
+      "case_id": "mut_missing_signature",
+      "campaign": "signature",
+      "expected_verdict": "NO VERDICT",
+      "expected_reason_code": "NV_SIG_MISSING",
+      "require_signature": true,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_replayed_run_id.json",
+      "case_id": "mut_replayed_run_id",
+      "campaign": "provenance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_RUN_ID_REPLAYED",
+      "require_signature": false,
+      "use_seen_ledger": true
+    },
+    {
+      "file": "adversarial/mut_future_timestamp.json",
+      "case_id": "mut_future_timestamp",
+      "campaign": "timestamps",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_TIMESTAMP_FUTURE",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_reversed_timestamps.json",
+      "case_id": "mut_reversed_timestamps",
+      "campaign": "timestamps",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_TIMESTAMP_REVERSED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_h200_missing_gpu_manifest.json",
+      "case_id": "mut_h200_missing_gpu_manifest",
+      "campaign": "provenance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_GPU_MANIFEST_CONTRADICTION",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_backend_mismatch.json",
+      "case_id": "mut_backend_mismatch",
+      "campaign": "backend",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_BACKEND_INTENT_MISMATCH",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_patch_sha_mismatch.json",
+      "case_id": "mut_patch_sha_mismatch",
+      "campaign": "provenance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PATCH_DIGEST_MISMATCH",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_missing_generation.json",
+      "case_id": "mut_missing_generation",
+      "campaign": "generations",
+      "expected_verdict": "NO VERDICT",
+      "expected_reason_code": "NV_MISSING_ALLOCATION_GENERATION",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_stale_generation_reuse.json",
+      "case_id": "mut_stale_generation_reuse",
+      "campaign": "generations",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_BLOCK_STALE_GENERATION",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_wrong_tenant_accepted.json",
+      "case_id": "mut_wrong_tenant_accepted",
+      "campaign": "isolation",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_SCOPE_CROSS_TENANT_ACCEPTED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_public_inferred_token_equality.json",
+      "case_id": "mut_public_inferred_token_equality",
+      "campaign": "isolation",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_SCOPE_PUBLIC_INFERRED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_violating_request_dispatched.json",
+      "case_id": "mut_violating_request_dispatched",
+      "campaign": "isolation",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_VIOLATION_ENTERED_DISPATCH",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_allowed_request_blocked.json",
+      "case_id": "mut_allowed_request_blocked",
+      "campaign": "isolation",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_ALLOWED_REQUEST_BLOCKED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_allowed_before_violation.json",
+      "case_id": "mut_allowed_before_violation",
+      "campaign": "timestamps",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_TIMESTAMP_REVERSED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_equivalence_seed_mismatch.json",
+      "case_id": "mut_equivalence_seed_mismatch",
+      "campaign": "equivalence",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_CLEAN_SEED_OR_CONFIG_MISMATCH",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_perf_hw_mismatch.json",
+      "case_id": "mut_perf_hw_mismatch",
+      "campaign": "performance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PERF_CONFIG_MISMATCH",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_p95_insufficient_samples.json",
+      "case_id": "mut_p95_insufficient_samples",
+      "campaign": "performance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PERF_INSUFFICIENT_SAMPLES",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_percent_missing_absolutes.json",
+      "case_id": "mut_percent_missing_absolutes",
+      "campaign": "performance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PERF_MISSING_DENOMINATOR",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_tp8_missing_ranks.json",
+      "case_id": "mut_tp8_missing_ranks",
+      "campaign": "ranks",
+      "expected_verdict": "NO VERDICT",
+      "expected_reason_code": "NV_TP_RANK_EVIDENCE_MISSING",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_rank_disagreement.json",
+      "case_id": "mut_rank_disagreement",
+      "campaign": "ranks",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_TP_RANK_DISAGREEMENT",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_unsupported_path_omitted.json",
+      "case_id": "mut_unsupported_path_omitted",
+      "campaign": "exclusions",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_UNSUPPORTED_PATH_OMITTED",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_local_mislabeled_live.json",
+      "case_id": "mut_local_mislabeled_live",
+      "campaign": "provenance",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_STATUS_LAUNDERING",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_placeholder_metric.json",
+      "case_id": "mut_placeholder_metric",
+      "campaign": "numbers",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PLACEHOLDER_METRIC",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_nonfinite_nan.json",
+      "case_id": "mut_nonfinite_nan",
+      "campaign": "numbers",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_CANON_NONFINITE_NUMBER",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_negative_latency.json",
+      "case_id": "mut_negative_latency",
+      "campaign": "numbers",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_PERF_IMPOSSIBLE_METRIC",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_secret_leak.json",
+      "case_id": "mut_secret_leak",
+      "campaign": "sanitizer",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_SECRET_LEAK_KEY_OR_TOKEN",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_ui_summary_contradiction.json",
+      "case_id": "mut_ui_summary_contradiction",
+      "campaign": "summary",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_UI_SUMMARY_CONTRADICTION",
+      "require_signature": false,
+      "use_seen_ledger": false
+    },
+    {
+      "file": "adversarial/mut_duplicate_json_key.json",
+      "case_id": "mut_duplicate_json_key",
+      "campaign": "parse",
+      "expected_verdict": "FAIL",
+      "expected_reason_code": "FAIL_CANON_DUPLICATE_KEY",
+      "require_signature": false,
+      "use_seen_ledger": false
+    }
+  ]
+}

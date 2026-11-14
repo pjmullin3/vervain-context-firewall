@@ -1,0 +1,1 @@
+{"algorithm":"ed25519","ephemeral_demo_only":true,"key_id":"vervain-test-ed25519-01","signature_value":"VwKiNAIq5It9IBmnDrcaoHP6z05hMFjzpgMEGIt2Zl+oGwu9pU7gu59uqFfWhyNWfr3TZpQqJHgWFmhYkkhfBA==","signed_at":"2026-11-14T11:58:20Z","signed_digest_sha256":"ccf878a09ae8797638ec5b48be4332fe72d6c37c2c502426d4274d5a24a55b92","trust_root_id":"vervain-test-trust-root-v1"}

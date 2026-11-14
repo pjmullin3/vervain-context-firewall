@@ -1,0 +1,16 @@
+{
+  "schema_version": "trust-root.v1",
+  "trust_root_id": "vervain-test-trust-root-v1",
+  "keys": [
+    {
+      "key_id": "vervain-test-ed25519-01",
+      "algorithm": "ed25519",
+      "public_key_b64": "aAFmLajO7JRz515tquFSDYjOBTTFoUjLbzqz/T0e760=",
+      "status": "active",
+      "purpose": "inference-proof-signing",
+      "not_before": "2026-11-13T12:00:00Z",
+      "not_after": "2026-12-14T12:00:00Z",
+      "allow_ephemeral_demo": true
+    }
+  ]
+}

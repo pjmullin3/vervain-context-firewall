@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vervain.security/schemas/verification/run-manifest.v1.schema.json",
+  "title": "Vervain Run Directory Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "evidence_status",
+    "created_at",
+    "source",
+    "gpu_model",
+    "gpu_count",
+    "gpu_uuids_sha256",
+    "tp_size",
+    "configured_backend",
+    "selected_runtime_backend",
+    "model_id",
+    "model_revision",
+    "expected_files"
+  ],
+  "properties": {
+    "schema_version": { "const": "run-manifest.v1" },
+    "run_id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._:/-]+$" },
+    "evidence_status": { "type": "string", "enum": ["live", "recorded", "local_only", "incomplete"] },
+    "created_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["git_sha", "git_dirty", "vllm_sha", "patch_sha256", "trace_sha256"],
+      "properties": {
+        "git_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "git_dirty": { "type": "boolean" },
+        "vllm_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "patch_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "trace_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "gpu_model": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+    "gpu_count": { "type": "integer", "minimum": 0, "maximum": 64 },
+    "gpu_uuids_sha256": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "tp_size": { "type": "integer", "minimum": 1, "maximum": 64 },
+    "configured_backend": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "selected_runtime_backend": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "model_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "model_revision": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "expected_files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+    }
+  }
+}

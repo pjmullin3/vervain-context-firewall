@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vervain.security/schemas/verification/verifier-result.v1.schema.json",
+  "title": "Vervain Independent Evidence Verifier Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verdict",
+    "exit_code",
+    "primary_reason_code",
+    "reason_codes",
+    "target_type",
+    "target_path",
+    "run_id",
+    "artifact_sha256_declared",
+    "artifact_sha256_computed",
+    "claimed_evidence_status",
+    "verified_evidence_status",
+    "verifier",
+    "checks",
+    "sanitizer_result",
+    "signature_result",
+    "ui_summary_crosscheck",
+    "provenance_summary",
+    "impact_summary",
+    "exclusions",
+    "claim_boundary",
+    "limitations",
+    "verified_at"
+  ],
+  "properties": {
+    "schema_version": { "const": "verifier-result.v1" },
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL", "NO VERDICT"] },
+    "exit_code": { "type": "integer", "enum": [0, 1, 2] },
+    "primary_reason_code": { "type": "string", "pattern": "^[A-Z0-9_]{3,64}$" },
+    "reason_codes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": { "type": "string", "pattern": "^[A-Z0-9_]{3,64}$" }
+    },
+    "target_type": { "type": "string", "enum": ["artifact", "run_dir"] },
+    "target_path": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "run_id": { "type": ["string", "null"], "maxLength": 128 },
+    "artifact_sha256_declared": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "artifact_sha256_computed": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "claimed_evidence_status": {
+      "type": "string",
+      "enum": ["live", "recorded", "local_only", "incomplete", "unknown"]
+    },
+    "verified_evidence_status": {
+      "type": "string",
+      "enum": ["live", "recorded", "local_only", "incomplete", "unverified"]
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "git_sha", "trust_root_required"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "git_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "trust_root_required": { "type": "boolean" }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check_id", "invariant_id", "status", "reason_code", "summary", "evidence_refs"],
+        "properties": {
+          "check_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "invariant_id": { "type": "string", "minLength": 1, "maxLength": 32 },
+          "status": { "type": "string", "enum": ["pass", "fail", "no_verdict", "skipped"] },
+          "reason_code": { "type": "string", "pattern": "^[A-Z0-9_]{3,64}$" },
+          "summary": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 64,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        }
+      }
+    },
+    "sanitizer_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "rules_checked", "finding_count", "findings"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "rules_checked": { "type": "integer", "minimum": 1 },
+        "finding_count": { "type": "integer", "minimum": 0 },
+        "findings": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule_id", "json_pointer", "reason_code", "redacted_preview"],
+            "properties": {
+              "rule_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "json_pointer": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "reason_code": { "type": "string", "pattern": "^[A-Z0-9_]{3,64}$" },
+              "redacted_preview": { "type": "string", "minLength": 1, "maxLength": 64 }
+            }
+          }
+        }
+      }
+    },
+    "signature_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checked", "trust_root_required", "verified", "key_id", "reason_code"],
+      "properties": {
+        "checked": { "type": "boolean" },
+        "trust_root_required": { "type": "boolean" },
+        "verified": { "type": "boolean" },
+        "key_id": { "type": ["string", "null"], "maxLength": 128 },
+        "reason_code": { "type": "string", "pattern": "^[A-Z0-9_]{3,64}$" }
+      }
+    },
+    "ui_summary_crosscheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present", "consistent", "mismatched_fields"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "consistent": { "type": "boolean" },
+        "mismatched_fields": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 32,
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      }
+    },
+    "provenance_summary": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "gpu_model",
+        "gpu_count",
+        "tp_size_verified",
+        "ranks_verified",
+        "vllm_sha",
+        "patch_sha256",
+        "selected_runtime_backend",
+        "command_receipts_verified"
+      ],
+      "properties": {
+        "gpu_model": { "type": ["string", "null"], "maxLength": 128 },
+        "gpu_count": { "type": "integer", "minimum": 0 },
+        "tp_size_verified": { "type": "integer", "minimum": 0 },
+        "ranks_verified": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "vllm_sha": { "type": ["string", "null"], "maxLength": 64 },
+        "patch_sha256": { "type": ["string", "null"], "maxLength": 64 },
+        "selected_runtime_backend": { "type": ["string", "null"], "maxLength": 128 },
+        "command_receipts_verified": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "impact_summary": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "foreign_block_stopped_before_dispatch",
+        "native_fault_entered_dispatch",
+        "clean_equivalence_within_tolerance",
+        "allowed_after_fault_completed",
+        "ttft_delta_pct",
+        "ttft_sample_count"
+      ],
+      "properties": {
+        "foreign_block_stopped_before_dispatch": { "type": "boolean" },
+        "native_fault_entered_dispatch": { "type": "boolean" },
+        "clean_equivalence_within_tolerance": { "type": "boolean" },
+        "allowed_after_fault_completed": { "type": "boolean" },
+        "ttft_delta_pct": { "type": ["number", "null"] },
+        "ttft_sample_count": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 64,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "claim_boundary": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "verified_at": { "type": "string", "maxLength": 40 }
+  }
+}
