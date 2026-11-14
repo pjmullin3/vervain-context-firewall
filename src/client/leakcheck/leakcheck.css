@@ -58,7 +58,7 @@
 .lc-sentence {
   position: absolute;
   left: 50%;
-  bottom: 22px;
+  top: 14px;
   transform: translateX(-50%);
   margin: 0;
   max-width: min(760px, calc(100% - 32px));

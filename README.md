@@ -1,13 +1,31 @@
-# Vervain Context Firewall
+# Vervain
 
-Vervain stops another tenant's retrieved memory from entering an agent's Google Gemini context before inference, while preserving the authorized answer and issuing a payload-free causal receipt.
+**Login tells you who's asking. Vervain controls what the AI sees.**
 
-`Vervain Context Firewall` is a fresh-code hackathon prototype built around one inspectable multi-tenant failure mode: IAM establishes that the active caller is `Tenant Alder` (`alder-operator`, policy `alder-context@7`), yet a missing database predicate in retrieval (`cross_tenant_filter_omission`) returns both Alder's commercial playbook (`alder/renewal-playbook-v3`) and Tenant Beacon's restricted strategy note (`beacon/strategy-note-v2`, containing synthetic code `BEACON_PROJECT_EMBER_742` and an embedded document override instruction).
+One AI assistant serves many companies. One search bug, and the AI reads Pied Piper's private files and hands them to Acme Co. That's a data breach, and today nothing stops it.
 
-Running `Run paired proof` executes the frozen query (`fixture.northstar-renewal.v1`) across two synchronized arms:
+Vervain checks every file before the AI reads it. Wrong company? Blocked. Acme still gets its answer, and every run leaves a receipt.
 
-- **`Native only` (intentionally vulnerable synthetic control):** Passes `2 of 2` retrieved chunks into the outbound Gemini envelope (`cross_tenant_context_transmitted`).
-- **`Native + Vervain` (mediated context & release boundary):** Deterministic provenance validation withholds Beacon (`tenant_mismatch`), admits `1 of 2` retrieved chunks (`alder/renewal-playbook-v3`) into the server-assembled Google Gemini envelope via the official `@google/genai` SDK, rechecks session authority and policy epoch (`7 -> 7`) before reply release, delivers Alder's authorized commercial renewal guidance, and appends a SHA-256 hash-chained, content-free receipt.
+**Live demo:** https://vervain-context-firewall-m6xhca334q-uc.a.run.app
+
+Three clicks:
+
+1. **Run Acme's request.** Watch the search bug grab both files. Gemini 4 Carbon reads only Acme's file. Pied Piper's note shows **BLOCKED by Vervain**.
+2. **Flip Vervain OFF.** Same run, other arm: Pied Piper's note goes straight into the AI (**LEAKED into Gemini**).
+3. **Open Receipt.** Check the receipt chain and see the same test on our own GPU.
+
+**What is new today.** Base map: existing Vervain product code (pjmullin3/vervain). New today: the live Gemini leak check and the receipt and GPU proof drawer, built with a swarm of Gemini 4 Carbon agents in Antigravity CLI, red-teamed with OpenAI Codex; Claude Code helped port, deploy and produce media.
+
+**Run locally.**
+
+```bash
+npm install
+npm run build
+# put a Gemini API key in .env (never commit it); without one the app runs in MOCK mode and says so
+node --env-file=.env dist/server/server/index.js
+```
+
+Names: the screen says Acme Co. and Pied Piper. In the code and API below they keep their ids `alder` (Acme Co.) and `beacon` (Pied Piper).
 
 ---
 
