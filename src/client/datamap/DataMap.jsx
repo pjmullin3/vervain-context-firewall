@@ -34,7 +34,7 @@ const STATE_TEXT = {editing: 'Write completed', reading: 'Read completed', block
 const Card = memo(/** @param {any} props */ function Card({data, selected}) {
   const {node, body, lifted, stub} = data, a = node.activity;
   const style = /** @type {any} */ ({'--age': data.fade ? node.age ?? 0 : 0, width: body.w, height: body.h});
-  const common = cls('dm-card', `dm-${body.silhouette}`, stub && 'is-stub', lifted && 'is-lifted', data.bundled && 'is-bundled', selected && 'is-selected', body.sizeState === 'empty' && 'is-empty', data.leaving && 'is-leaving');
+  const common = cls('dm-card', `dm-${body.silhouette}`, stub && 'is-stub', lifted && 'is-lifted', data.bundled && 'is-bundled', selected && 'is-selected', body.sizeState === 'empty' && 'is-empty', data.leaving && 'is-leaving', data.tag && `is-tag-${data.tag.tone}`);
   const title = stub ? node.retained : node.kind === 'file' ? node.meta.path : node.kind === 'folder' ? node.meta.path : node.kind === 'agent' ? `${node.meta.client || 'agent'} ${node.id.slice(6)}` : node.meta.upstream;
   if (node.kind === 'box') return <div className={cls('dm-box', data.live && 'is-live', data.dropReady && 'is-drop-target')} title="Open the Box: context and governance for this project"><Handles/><Cube size={84} glass attention={data.live || data.dropReady} open={data.dropReady}/><strong>{data.label}</strong><small>{data.dropReady ? 'Drop to add to context' : data.sub}</small></div>;
   return <div className={common} style={style} title={title}>
@@ -46,7 +46,7 @@ const Card = memo(/** @param {any} props */ function Card({data, selected}) {
       {!['file','folder'].includes(node.kind) && <Stamp at={a?.at}/>}
     </header>
     <div className="dm-meta">
-      {node.kind !== 'folder' && <span className={cls('dm-state', `is-${a?.state}`)}>{stub ? 'Retained ancestor' : STATE_TEXT[a?.state] || a?.state}</span>}
+      {node.kind !== 'folder' && <span className={cls('dm-state', `is-${a?.state}`, data.tag && 'dm-tag')}>{stub ? 'Retained ancestor' : data.tag?.text || STATE_TEXT[a?.state] || a?.state}</span>}
       {data.detail && <code title={data.detail}>{data.detail}</code>}
       {['file','folder'].includes(node.kind) && <Stamp at={a?.at}/>}
     </div>
@@ -164,8 +164,8 @@ function Switches({settings, onChange}) {
 export function DataMap(props) { return <ReactFlowProvider><MapView {...props}/></ReactFlowProvider>; }
 export default DataMap;
 
-/** @param {{source:any, onOpen?:(what:string,node:any)=>boolean|void, onIncludeFile?:((path:string,kind?:string)=>Promise<any>)|null, initialSettings?:any, still?:boolean}} props */
-function MapView({source, onOpen = () => {}, onIncludeFile = null, initialSettings = null, still = false}) {
+/** @param {{source:any, onOpen?:(what:string,node:any)=>boolean|void, onIncludeFile?:((path:string,kind?:string)=>Promise<any>)|null, initialSettings?:any, still?:boolean, cardTag?:((node:any)=>{text:string,tone:string}|null)|null, onPlayback?:(()=>void)|null, minimalTools?:boolean}} props */
+function MapView({source, onOpen = () => {}, onIncludeFile = null, initialSettings = null, still = false, cardTag = null, onPlayback = null, minimalTools = false}) {
   const flow = useReactFlow();
   const topologyRef = useRef(null); if (!topologyRef.current) topologyRef.current = createTopology();
   const topology = topologyRef.current;
@@ -247,10 +247,10 @@ function MapView({source, onOpen = () => {}, onIncludeFile = null, initialSettin
       out.push({id: n.id, type: 'card', position: {x: cx - b.w / 2, y: cy - b.h / 2}, width: b.w, height: b.h, draggable: ['file','folder','agent','agent_group'].includes(n.kind) && !!onIncludeFile, selected: selected === n.id, zIndex: body?.lifted ? 40 : n.kind === 'box' ? 5 : 10 - Math.round((n.age || 0) * 4),
         ariaLabel: `${label}, ${n.kind}, ${STATE_TEXT[n.activity?.state] || ''}, observed ${new Date(n.activity?.at || n.last_at).toLocaleString()}. Enter for details.`,
         data: {node: n, body: b, label, detail, glyph: n.kind === 'request' ? '↗' : n.kind === 'agent' ? (n.meta.client === 'codex' ? '›_' : '✳') : n.kind === 'folder' ? (expanded.has(n.id) ? '▿' : '▹') : n.kind === 'file' ? ({code: '</>', prose: '¶', data: '{}', media: '▧', config: '⚙', unknown: '?'})[fileKind(n.meta.path)] : '☁', sub: n.kind === 'box' ? `${projection.nodes.some(x => x.kind === 'agent' && ['running','reading','editing'].includes(x.activity?.state)) ? 'Agent running' : projection.nodes.some(x => x.kind === 'agent') ? `${projection.nodes.filter(x => x.kind === 'agent').length} agents observed` : 'Waiting for agent'} · ${projection.nodes.filter(x => x.kind === 'file').length} files accessed` : '', live: n.kind === 'box' && projection.nodes.some(x => x.age < .05 && x.kind !== 'box' && x.kind !== 'folder'), dropReady: n.kind === 'box' && dropReady,
-          fade: settings.fade, lifted: !!body?.lifted, stub: !!n.stub, expanded: expanded.has(n.id), onExpand: id => setExpanded(s => { const x = new Set(s); x.has(id) ? x.delete(id) : x.add(id); return x; })}});
+          fade: settings.fade, tag: cardTag?.(n) || null, lifted: !!body?.lifted, stub: !!n.stub, expanded: expanded.has(n.id), onExpand: id => setExpanded(s => { const x = new Set(s); x.has(id) ? x.delete(id) : x.add(id); return x; })}});
     }
     return out;
-  }, [projection, bodies, layout, physicsOn, selected, settings.fade, expanded, home, source.label, world, onIncludeFile, dropReady]);
+  }, [projection, bodies, layout, physicsOn, selected, settings.fade, expanded, home, source.label, world, onIncludeFile, dropReady, cardTag]);
   useEffect(() => { setRfNodes(prev => { const old = new Map(prev.map(n => [n.id, n])); return buildNodes().map(n => { const o = old.get(n.id); return o?.dragging ? {...n, position: o.position, dragging: true} : o?.measured ? {...n, measured: o.measured} : n; }); }); }, [buildNodes]);
   useEffect(() => {
     let frame = 0, last = performance.now(), lastMetrics = 0;
@@ -339,12 +339,12 @@ function MapView({source, onOpen = () => {}, onIncludeFile = null, initialSettin
         <input type="search" aria-label="Find a session, file or folder" placeholder="Find" value={find} onChange={e => setFind(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && hits[0]) { setSelected(hits[0].id); centerOn(hits[0].id); } if (e.key === 'Escape') setFind(''); }}/>
         {hits.length > 0 && <ul className="dm-hits" role="listbox" aria-label="Matches">{hits.map(h => <li key={h.id}><button type="button" onClick={() => { setSelected(h.id); centerOn(h.id); setFind(''); }}>{h.kind === 'file' || h.kind === 'folder' ? tilde(h.meta.path, home) : h.meta?.name || h.meta?.client || h.id}<small>{PORT_LANE[projection.port.get(h.id)] || ''}</small></button></li>)}</ul>}
       </div>
-      <div className="dm-tools" role="group" aria-label="Time window">{[15, 60, 240, 720].map(n => <button key={n} type="button" aria-pressed={settings.lifespan === n} onClick={() => update({lifespan: n})}>{n < 60 ? `${n}m` : `${n / 60}h`}</button>)}</div>
+      {!minimalTools && <div className="dm-tools" role="group" aria-label="Time window">{[15, 60, 240, 720].map(n => <button key={n} type="button" aria-pressed={settings.lifespan === n} onClick={() => update({lifespan: n})}>{n < 60 ? `${n}m` : `${n / 60}h`}</button>)}</div>}
       <div className="dm-tools">
         <button type="button" title="Fit everything" onClick={() => flow.fitView({...FIT, duration: motionOff ? 0 : 250})}>Fit</button>
-        <button type="button" aria-pressed={showSwitches} onClick={() => setShowSwitches(s => !s)}>Switches</button>
-        <button type="button" aria-pressed={showAudit} onClick={() => setShowAudit(s => !s)}>Audit</button>
-        {cursor === null ? <button type="button" onClick={startPlayback}>Playback</button> : <button type="button" onClick={() => { setCursor(null); setPlaying(false); }}>Return to live</button>}
+        {!minimalTools && <button type="button" aria-pressed={showSwitches} onClick={() => setShowSwitches(s => !s)}>Switches</button>}
+        {!minimalTools && <button type="button" aria-pressed={showAudit} onClick={() => setShowAudit(s => !s)}>Audit</button>}
+        {onPlayback ? <button type="button" onClick={onPlayback}>Playback</button> : cursor === null ? <button type="button" onClick={startPlayback}>Playback</button> : <button type="button" onClick={() => { setCursor(null); setPlaying(false); }}>Return to live</button>}
       </div>
     </div></div>
     {showSwitches && <Switches settings={settings} onChange={update}/>}

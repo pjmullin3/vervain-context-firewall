@@ -107,3 +107,10 @@
 .dm-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px}.dm-crumbs button{padding:3px 8px;background:#1c1c1c}.dm-crumbs .dm-child{background:#171717;border-style:dashed}.dm-crumbs span{color:var(--mute)}
 .dm-link{padding:0;border:0;background:transparent;color:#cfc4e6;text-decoration:underline;text-underline-offset:2px}
 .dm-root .react-flow__minimap{border-radius:8px}
+
+/* optional card tags (cardTag prop): the state line carries the label, the border carries the tone */
+.dm-card.is-tag-blocked{border-color:#d86a6a;box-shadow:0 0 0 1px #d86a6a66,0 6px 18px #0005;background:#221616}
+.dm-card.is-tag-leaked{border-color:#e8b04a;box-shadow:0 0 0 1px #e8b04a66,0 6px 18px #0005;background:#221d12}
+.dm-card.is-tag-blocked .dm-tag{color:#f0a0a0;font-weight:600}.dm-card.is-tag-leaked .dm-tag{color:#f2c879;font-weight:600}
+.dm-card.is-tag-blocked .dm-tag:before{background:#d86a6a;border-color:#d86a6a}.dm-card.is-tag-leaked .dm-tag:before{background:#e8b04a;border-color:#e8b04a}
+.dm-card.is-tag-neutral .dm-tag{color:var(--mute)}

@@ -99,3 +99,6 @@
 .lc-check.is-bad { border-color: #6b3d3d; color: #e8a0a0; }
 .lc-gpu { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #121214; }
 .lc-gpu p { margin: 6px 0 0; color: #c8c8ce; line-height: 1.45; }
+
+/* Stock map chrome kept to what this demo uses. */
+.lc-map .dm-status { display: none; }
