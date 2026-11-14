@@ -46,6 +46,7 @@ export function loadSafeFixture(rawFixture: unknown): ParseEvidenceResult {
 export interface SafeFixtureRegistry<TAlias extends string = string> {
   readonly aliases: readonly TAlias[];
   readonly has: (alias: string) => alias is TAlias;
+  readonly getRaw: (alias: string) => unknown;
   readonly load: (alias: string) => ParseEvidenceResult;
 }
 
@@ -66,6 +67,12 @@ export function createSafeFixtureRegistry<TAlias extends string>(
   return deepFreeze({
     aliases,
     has: (alias: string): alias is TAlias => entries.has(alias),
+    getRaw: (alias: string): unknown => {
+      if (!SAFE_ALIAS_REGEX.test(alias) || !entries.has(alias)) {
+        return undefined;
+      }
+      return entries.get(alias);
+    },
     load: (alias: string): ParseEvidenceResult => {
       if (!SAFE_ALIAS_REGEX.test(alias) || !entries.has(alias)) {
         return {

@@ -18,9 +18,11 @@ export interface VervainInferenceReplayProps {
   readonly evidence?: unknown;
   readonly status?: "empty" | "loading" | "loaded";
   readonly fromFixture?: boolean;
-  readonly initialLane?: LaneId;
-  readonly initialStepIndex?: TimelineStepIndex;
+  readonly initialLane?: LaneId | null;
+  readonly initialStepIndex?: TimelineStepIndex | null;
   readonly defaultReceiptOpen?: boolean;
+  readonly initialReceiptOpen?: boolean;
+  readonly rejectedDeepLinkParams?: readonly string[];
   readonly forceReducedMotion?: boolean;
   readonly demoStepDurationMs?: number;
   readonly injectStyles?: boolean;
@@ -40,22 +42,27 @@ export function VervainInferenceReplay({
   fromFixture = false,
   initialLane = "native_plus_vervain",
   initialStepIndex,
-  defaultReceiptOpen = false,
+  defaultReceiptOpen,
+  initialReceiptOpen,
+  rejectedDeepLinkParams,
   forceReducedMotion,
   demoStepDurationMs = 850,
   injectStyles = true,
   onStateChange
 }: VervainInferenceReplayProps): React.JSX.Element {
   const receiptTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const resolvedLane: LaneId = initialLane ?? "native_plus_vervain";
+  const resolvedStepIndex: TimelineStepIndex | undefined = initialStepIndex ?? undefined;
+  const resolvedReceiptOpen = initialReceiptOpen ?? defaultReceiptOpen ?? false;
 
   const [state, dispatch] = useReducer(replayReducer, undefined, () =>
     createReplayState({
       status,
       evidence,
       fromFixture,
-      initialLane,
-      initialStepIndex,
-      receiptOpen: defaultReceiptOpen,
+      initialLane: resolvedLane,
+      initialStepIndex: resolvedStepIndex,
+      receiptOpen: resolvedReceiptOpen,
       reducedMotion: forceReducedMotion ?? detectReducedMotionPreference()
     })
   );
@@ -83,10 +90,10 @@ export function VervainInferenceReplay({
       type: "LOAD_EVIDENCE",
       input: evidence,
       fromFixture,
-      initialLane,
-      initialStepIndex
+      initialLane: resolvedLane,
+      initialStepIndex: resolvedStepIndex
     });
-  }, [status, evidence, fromFixture, initialLane, initialStepIndex]);
+  }, [status, evidence, fromFixture, resolvedLane, resolvedStepIndex]);
 
   // Track prefers-reduced-motion media query
   useEffect(() => {
@@ -155,6 +162,14 @@ export function VervainInferenceReplay({
         />
 
         <main aria-label="Vervain causal inference replay workspace" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {rejectedDeepLinkParams && rejectedDeepLinkParams.length > 0 && (
+            <div className="vr-banner vr-banner--warn" role="status" data-testid="rejected-deeplink-notice">
+              <p className="vr-banner-body">
+                Ignored non-allowlisted deep-link parameters: {rejectedDeepLinkParams.join(", ")}
+              </p>
+            </div>
+          )}
+
           {/* Locked Copy Contract & Limitations Block */}
           <section className="vr-hero-grid" aria-label="Thesis and boundary framing">
             <div className="vr-hero-copy">

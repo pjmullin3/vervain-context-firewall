@@ -142,31 +142,14 @@ export function DemoApp(): React.JSX.Element {
         })}
       </nav>
 
-      {initialSelection.rejectedParams.length > 0 && (
-        <div
-          role="status"
-          data-testid="rejected-deeplink-notice"
-          style={{
-            maxWidth: "1380px",
-            margin: "10px auto 0",
-            padding: "8px 24px",
-            fontFamily:
-              '"JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace',
-            fontSize: "12px",
-            color: "#ebd08b"
-          }}
-        >
-          Ignored non-allowlisted deep-link parameters: {initialSelection.rejectedParams.join(", ")}
-        </div>
-      )}
-
       <VervainInferenceReplay
         evidence={evidencePayload}
         status={replayStatus}
         fromFixture={fromFixture}
-        initialLane={initialSelection.lane ?? "native_plus_vervain"}
-        initialStepIndex={initialSelection.stepIndex ?? undefined}
-        defaultReceiptOpen={initialSelection.receiptOpen}
+        initialLane={initialSelection.lane}
+        initialStepIndex={initialSelection.stepIndex}
+        initialReceiptOpen={initialSelection.receiptOpen}
+        rejectedDeepLinkParams={initialSelection.rejectedParams}
       />
     </div>
   );
